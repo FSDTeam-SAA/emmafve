@@ -1,0 +1,175 @@
+import { Request, Response } from "express";
+import { asyncHandler } from "../../utils/asyncHandler";
+import ApiResponse from "../../utils/apiResponse";
+import config from "../../config";
+import { authService } from "./auth.service";
+import CustomError from "../../helpers/CustomError";
+
+//: Register user
+export const registration = asyncHandler(async (req, res) => {
+  const user = await authService.registerUser(req.body);
+  ApiResponse.sendSuccess(res, 201, "User registered successfully", {
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+  });
+});
+
+//: Verify account by otp sent to email
+export const verifyAccount = asyncHandler(async (req, res) => {
+  const user = await authService.verifyAccount(req.body.email, req.body.otp);
+  ApiResponse.sendSuccess(res, 200, "Account successfully verified", {
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+  });
+});
+
+//: Login user
+export const login = asyncHandler(async (req, res) => {
+  const { user, accessToken, refreshToken } = await authService.login(
+    req.body.email,
+    req.body.password,
+    req?.body?.rememberMe
+  );
+
+  if (config.env === "development") {
+    res.cookie("refreshToken", refreshToken, {
+      httpOnly: true,
+      sameSite: "none",
+      secure: true,
+      maxAge: 1000 * 60 * 60 * 24 * 15 // 15 days
+    });
+
+    res.cookie("accessToken", accessToken, {
+      httpOnly: true,
+      sameSite: "none",
+      secure: true,
+      maxAge: 1000 * 60 * 30 // 30 minutes
+    });
+  }
+
+  ApiResponse.sendSuccess(res, 200, "Logged in", {
+    _id: user._id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    role: user.role,
+    accessToken,
+    refreshToken,
+  });
+});
+
+//: Logout user
+export const logout = asyncHandler(async (req: Request, res: Response) => {
+  const { email } = req.user as { email: string };
+  await authService.logout(email);
+
+  res.clearCookie("refreshToken");
+  res.clearCookie("accessToken");
+
+  ApiResponse.sendSuccess(res, 200, "Logged out", {});
+});
+
+//: forget password
+export const forgetPassword = asyncHandler(async (req, res) => {
+  const user = await authService.forgetPassword(req.body.email);
+  ApiResponse.sendSuccess(res, 200, "Reset password otp sent to your email", {
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    message: "Reset password otp sent to your email",
+  });
+});
+
+//: verify otp
+export const verifyOtpForgetPassword = asyncHandler(async (req, res) => {
+  const { email, otp } = req.body;
+  const user = await authService.verifyOtp(email, otp);
+  ApiResponse.sendSuccess(res, 200, "Otp is verified", {
+    email: user.email,
+    token: user?.resetPassword?.token
+  });
+});
+
+//: reset password
+export const resetPassword = asyncHandler(async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+  if (!token) throw new CustomError(400, "Token not found");
+
+  await authService.resetPassword(token as string, password);
+
+  ApiResponse.sendSuccess(res, 200, "Password reset successful");
+});
+
+//: generate access token
+export const generateAccessToken = asyncHandler(async (req, res) => {
+  const refreshToken =
+    req.headers?.authorization?.toString().split("Bearer ")[1];
+
+  if (!refreshToken) {
+    throw new CustomError(401, "Refresh token not found");
+  }
+
+  const accessToken = await authService.generateAccessToken(refreshToken);
+
+  res.cookie("accessToken", accessToken, {
+    httpOnly: true,
+    sameSite: "none",
+  });
+
+  ApiResponse.sendSuccess(res, 201, "New access token generated", {
+    accessToken
+  });
+});
+
+//: Google Login callback/token handler
+export const googleLogin = asyncHandler(async (req, res) => {
+  const { idToken } = req.body;
+  if (!idToken) throw new CustomError(400, "Google idToken is required");
+
+  const { user, accessToken, refreshToken } = await authService.googleLogin(idToken);
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    sameSite: "none",
+    secure: true,
+    maxAge: 1000 * 60 * 60 * 24 * 15
+  });
+
+  ApiResponse.sendSuccess(res, 200, "Logged in with Google", {
+    _id: user._id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    role: user.role,
+    accessToken,
+    refreshToken,
+  });
+});
+
+//: Apple Login handler
+export const appleLogin = asyncHandler(async (req, res) => {
+  const { idToken, firstName, lastName } = req.body;
+  if (!idToken) throw new CustomError(400, "Apple idToken is required");
+
+  const { user, accessToken, refreshToken } = await authService.appleLogin(idToken, firstName, lastName);
+
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    sameSite: "none",
+    secure: true,
+    maxAge: 1000 * 60 * 60 * 24 * 15
+  });
+
+  ApiResponse.sendSuccess(res, 200, "Logged in with Apple", {
+    _id: user._id,
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    role: user.role,
+    accessToken,
+    refreshToken,
+  });
+});
