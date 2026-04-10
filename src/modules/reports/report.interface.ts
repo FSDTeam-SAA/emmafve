@@ -59,6 +59,7 @@ export interface IReport extends Document {
   contactEmail?: string;
   isEmailVisible: boolean;
   location: ILocation;
+  comments: (Types.ObjectId | string)[];
 }
 
 export interface CreateReportPayload {
