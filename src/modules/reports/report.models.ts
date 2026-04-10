@@ -104,6 +104,12 @@ const reportSchema = new Schema<IReport>(
         required: true,
       },
     },
+    comments: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Comment",
+      },
+    ],
   },
   {
     timestamps: true,

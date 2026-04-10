@@ -18,9 +18,9 @@
               "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+123456789\",\n  \"address\": \"123 Street\",\n  \"company\": \"Company Co\",\n  \"password\": \"Password@123\",\n  \"role\": \"user\"\n}"
             },
             "url": {
-              "raw": "{{domain}}/api/v1/auth/register-user",
+              "raw": "{{domain}}{{baseapi}}/auth/register-user",
               "host": ["{{domain}}"],
-              "path": ["api", "v1", "auth", "register-user"]
+              "path": ["{{baseapi}}", "auth", "register-user"]
             }
           }
         },
@@ -34,37 +34,9 @@
               "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"Password@123\"\n}"
             },
             "url": {
-              "raw": "{{domain}}/api/v1/auth/login",
+              "raw": "{{domain}}{{baseapi}}/auth/login",
               "host": ["{{domain}}"],
-              "path": ["api", "v1", "auth", "login"]
-            }
-          }
-        },
-        {
-          "name": "logout",
-          "request": {
-            "method": "POST",
-            "header": [],
-            "url": {
-              "raw": "{{domain}}/api/v1/auth/logout",
-              "host": ["{{domain}}"],
-              "path": ["api", "v1", "auth", "logout"]
-            }
-          }
-        },
-        {
-          "name": "forget-password",
-          "request": {
-            "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"email\": \"john@example.com\"\n}"
-            },
-            "url": {
-              "raw": "{{domain}}/api/v1/auth/forget-password",
-              "host": ["{{domain}}"],
-              "path": ["api", "v1", "auth", "forget-password"]
+              "path": ["{{baseapi}}", "auth", "login"]
             }
           }
         },
@@ -78,26 +50,9 @@
               "raw": "{\n  \"email\": \"john@example.com\",\n  \"otp\": \"123456\"\n}"
             },
             "url": {
-              "raw": "{{domain}}/api/v1/auth/verify-otp",
+              "raw": "{{domain}}{{baseapi}}/auth/verify-otp",
               "host": ["{{domain}}"],
-              "path": ["api", "v1", "auth", "verify-otp"]
-            }
-          }
-        },
-        {
-          "name": "reset-password",
-          "request": {
-            "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"password\": \"NewPassword@123\",\n  \"confirmPassword\": \"NewPassword@123\"\n}"
-            },
-            "url": {
-              "raw": "{{domain}}/api/v1/auth/reset-password/:token",
-              "host": ["{{domain}}"],
-              "path": ["api", "v1", "auth", "reset-password", ":token"],
-              "variable": [{"key": "token", "value": "paste_reset_token_here"}]
+              "path": ["{{baseapi}}", "auth", "verify-otp"]
             }
           }
         },
@@ -111,9 +66,42 @@
               "raw": "{\n  \"email\": \"john@example.com\",\n  \"otp\": \"123456\"\n}"
             },
             "url": {
-              "raw": "{{domain}}/api/v1/auth/verify-account",
+              "raw": "{{domain}}{{baseapi}}/auth/verify-account",
               "host": ["{{domain}}"],
-              "path": ["api", "v1", "auth", "verify-account"]
+              "path": ["{{baseapi}}", "auth", "verify-account"]
+            }
+          }
+        },
+        {
+          "name": "forget-password",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{domain}}{{baseapi}}/auth/forget-password",
+              "host": ["{{domain}}"],
+              "path": ["{{baseapi}}", "auth", "forget-password"]
+            }
+          }
+        },
+        {
+          "name": "reset-password",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"NewPassword@123\",\n  \"confirmPassword\": \"NewPassword@123\"\n}"
+            },
+            "url": {
+              "raw": "{{domain}}{{baseapi}}/auth/reset-password/:token",
+              "host": ["{{domain}}"],
+              "path": ["{{baseapi}}", "auth", "reset-password", ":token"],
+              "variable": [{"key": "token", "value": "paste_reset_token_here"}]
             }
           }
         },
@@ -127,9 +115,9 @@
               "raw": "{\n  \"idToken\": \"google_id_token_here\"\n}"
             },
             "url": {
-              "raw": "{{domain}}/api/v1/auth/google-login",
+              "raw": "{{domain}}{{baseapi}}/auth/google-login",
               "host": ["{{domain}}"],
-              "path": ["api", "v1", "auth", "google-login"]
+              "path": ["{{baseapi}}", "auth", "google-login"]
             }
           }
         },
@@ -143,9 +131,9 @@
               "raw": "{\n  \"idToken\": \"apple_id_token_here\"\n}"
             },
             "url": {
-              "raw": "{{domain}}/api/v1/auth/apple-login",
+              "raw": "{{domain}}{{baseapi}}/auth/apple-login",
               "host": ["{{domain}}"],
-              "path": ["api", "v1", "auth", "apple-login"]
+              "path": ["{{baseapi}}", "auth", "apple-login"]
             }
           }
         },
@@ -155,9 +143,21 @@
             "method": "POST",
             "header": [],
             "url": {
-              "raw": "{{domain}}/api/v1/auth/generate-access-token",
+              "raw": "{{domain}}{{baseapi}}/auth/generate-access-token",
               "host": ["{{domain}}"],
-              "path": ["api", "v1", "auth", "generate-access-token"]
+              "path": ["{{baseapi}}", "auth", "generate-access-token"]
+            }
+          }
+        },
+        {
+          "name": "logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{domain}}{{baseapi}}/auth/logout",
+              "host": ["{{domain}}"],
+              "path": ["{{baseapi}}", "auth", "logout"]
             }
           }
         }
@@ -167,26 +167,14 @@
       "name": "user",
       "item": [
         {
-          "name": "get-all-user",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{domain}}/api/v1/user/get-all-user",
-              "host": ["{{domain}}"],
-              "path": ["api", "v1", "user", "get-all-user"]
-            }
-          }
-        },
-        {
           "name": "get-single-user",
           "request": {
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{domain}}/api/v1/user/get-single-user/:userId",
+              "raw": "{{domain}}{{baseapi}}/user/get-single-user/:userId",
               "host": ["{{domain}}"],
-              "path": ["api", "v1", "user", "get-single-user", ":userId"],
+              "path": ["{{baseapi}}", "user", "get-single-user", ":userId"],
               "variable": [{"key": "userId", "value": "replace_with_user_id"}]
             }
           }
@@ -197,9 +185,21 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{domain}}/api/v1/user/get-my-profile",
+              "raw": "{{domain}}{{baseapi}}/user/get-my-profile",
               "host": ["{{domain}}"],
-              "path": ["api", "v1", "user", "get-my-profile"]
+              "path": ["{{baseapi}}", "user", "get-my-profile"]
+            }
+          }
+        },
+        {
+          "name": "get-all-user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{domain}}{{baseapi}}/user/get-all-user",
+              "host": ["{{domain}}"],
+              "path": ["{{baseapi}}", "user", "get-all-user"]
             }
           }
         },
@@ -218,9 +218,9 @@
               ]
             },
             "url": {
-              "raw": "{{domain}}/api/v1/user/update-user",
+              "raw": "{{domain}}{{baseapi}}/user/update-user",
               "host": ["{{domain}}"],
-              "path": ["api", "v1", "user", "update-user"]
+              "path": ["{{baseapi}}", "user", "update-user"]
             }
           }
         },
@@ -234,9 +234,9 @@
               "raw": "{\n  \"status\": \"inactive\"\n}"
             },
             "url": {
-              "raw": "{{domain}}/api/v1/user/update-status/:userId",
+              "raw": "{{domain}}{{baseapi}}/user/update-status/:userId",
               "host": ["{{domain}}"],
-              "path": ["api", "v1", "user", "update-status", ":userId"],
+              "path": ["{{baseapi}}", "user", "update-status", ":userId"],
               "variable": [{"key": "userId", "value": "replace_with_user_id"}]
             }
           }
@@ -251,9 +251,9 @@
               "raw": "{\n  \"currentPassword\": \"Password@123\",\n  \"newPassword\": \"NewPassword@123\"\n}"
             },
             "url": {
-              "raw": "{{domain}}/api/v1/user/update-password",
+              "raw": "{{domain}}{{baseapi}}/user/update-password",
               "host": ["{{domain}}"],
-              "path": ["api", "v1", "user", "update-password"]
+              "path": ["{{baseapi}}", "user", "update-password"]
             }
           }
         }
@@ -262,41 +262,6 @@
     {
       "name": "reports",
       "item": [
-        {
-          "name": "get-all-reports",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{domain}}/api/v1/reports/get-all-reports?page=1&limit=10&search=White&status=all&sort=descending&from=2023-01-01&to=2024-01-01",
-              "host": ["{{domain}}"],
-              "path": ["api", "v1", "reports", "get-all-reports"],
-              "query": [
-                { "key": "page", "value": "1", "description": "Page number" },
-                { "key": "limit", "value": "10", "description": "Items per page" },
-                { "key": "search", "value": "White", "description": "Search in title/breed/description" },
-                { "key": "status", "value": "all", "description": "lost, found, rescued, sighted, or all" },
-                { "key": "sort", "value": "descending", "description": "ascending or descending" },
-                { "key": "from", "value": "2023-01-01", "description": "Date range start" },
-                { "key": "to", "value": "2024-01-01", "description": "Date range end" },
-                { "key": "species", "value": "Cat", "description": "Filter by species", "disabled": true }
-              ]
-            }
-          }
-        },
-        {
-          "name": "get-single-report",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{domain}}/api/v1/reports/get-single-report/:reportId",
-              "host": ["{{domain}}"],
-              "path": ["api", "v1", "reports", "get-single-report", ":reportId"],
-              "variable": [{"key": "reportId", "value": "replace_with_report_id"}]
-            }
-          }
-        },
         {
           "name": "create-report",
           "request": {
@@ -325,9 +290,44 @@
               ]
             },
             "url": {
-              "raw": "{{domain}}/api/v1/reports/create-report",
+              "raw": "{{domain}}{{baseapi}}/reports/create-report",
               "host": ["{{domain}}"],
-              "path": ["api", "v1", "reports", "create-report"]
+              "path": ["{{baseapi}}", "reports", "create-report"]
+            }
+          }
+        },
+        {
+          "name": "get-single-report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{domain}}{{baseapi}}/reports/get-single-report/:reportId",
+              "host": ["{{domain}}"],
+              "path": ["{{baseapi}}", "reports", "get-single-report", ":reportId"],
+              "variable": [{"key": "reportId", "value": "replace_with_report_id"}]
+            }
+          }
+        },
+        {
+          "name": "get-all-reports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{domain}}{{baseapi}}/reports/get-all-reports?page=1&limit=10&search=White&status=all&sort=descending&from=2023-01-01&to=2024-01-01",
+              "host": ["{{domain}}"],
+              "path": ["{{baseapi}}", "reports", "get-all-reports"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number" },
+                { "key": "limit", "value": "10", "description": "Items per page" },
+                { "key": "search", "value": "White", "description": "Search in title/breed/description" },
+                { "key": "status", "value": "all", "description": "lost, found, rescued, sighted, or all" },
+                { "key": "sort", "value": "descending", "description": "ascending or descending" },
+                { "key": "from", "value": "2023-01-01", "description": "Date range start" },
+                { "key": "to", "value": "2024-01-01", "description": "Date range end" },
+                { "key": "species", "value": "Cat", "description": "Filter by species", "disabled": true }
+              ]
             }
           }
         },
@@ -345,22 +345,9 @@
               ]
             },
             "url": {
-              "raw": "{{domain}}/api/v1/reports/update-report/:reportId",
+              "raw": "{{domain}}{{baseapi}}/reports/update-report/:reportId",
               "host": ["{{domain}}"],
-              "path": ["api", "v1", "reports", "update-report", ":reportId"],
-              "variable": [{"key": "reportId", "value": "replace_with_report_id"}]
-            }
-          }
-        },
-        {
-          "name": "delete-report",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{domain}}/api/v1/reports/delete-report/:reportId",
-              "host": ["{{domain}}"],
-              "path": ["api", "v1", "reports", "delete-report", ":reportId"],
+              "path": ["{{baseapi}}", "reports", "update-report", ":reportId"],
               "variable": [{"key": "reportId", "value": "replace_with_report_id"}]
             }
           }
@@ -377,9 +364,9 @@
               ]
             },
             "url": {
-              "raw": "{{domain}}/api/v1/reports/add-image/:reportId",
+              "raw": "{{domain}}{{baseapi}}/reports/add-image/:reportId",
               "host": ["{{domain}}"],
-              "path": ["api", "v1", "reports", "add-image", ":reportId"],
+              "path": ["{{baseapi}}", "reports", "add-image", ":reportId"],
               "variable": [{"key": "reportId", "value": "replace_with_report_id"}]
             }
           }
@@ -394,10 +381,121 @@
               "raw": "{\n  \"public_id\": \"sample_public_id\"\n}"
             },
             "url": {
-              "raw": "{{domain}}/api/v1/reports/remove-image/:reportId",
+              "raw": "{{domain}}{{baseapi}}/reports/remove-image/:reportId",
               "host": ["{{domain}}"],
-              "path": ["api", "v1", "reports", "remove-image", ":reportId"],
+              "path": ["{{baseapi}}", "reports", "remove-image", ":reportId"],
               "variable": [{"key": "reportId", "value": "replace_with_report_id"}]
+            }
+          }
+        },
+        {
+          "name": "delete-report",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{domain}}{{baseapi}}/reports/delete-report/:reportId",
+              "host": ["{{domain}}"],
+              "path": ["{{baseapi}}", "reports", "delete-report", ":reportId"],
+              "variable": [{"key": "reportId", "value": "replace_with_report_id"}]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "comments",
+      "item": [
+        {
+          "name": "create-comment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "content", "value": "This is a comment", "type": "text" },
+                { "key": "reportId", "value": "replace_with_report_id", "type": "text" },
+                { "key": "parentId", "value": "replace_with_parent_id_for_replies", "type": "text", "disabled": true },
+                { "key": "image", "type": "file" }
+              ]
+            },
+            "url": {
+              "raw": "{{domain}}{{baseapi}}/comments/create-comment",
+              "host": ["{{domain}}"],
+              "path": ["{{baseapi}}", "comments", "create-comment"]
+            }
+          }
+        },
+        {
+          "name": "get-single-comment",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{domain}}{{baseapi}}/comments/get-single-comment/:commentId",
+              "host": ["{{domain}}"],
+              "path": ["{{baseapi}}", "comments", "get-single-comment", ":commentId"],
+              "variable": [{"key": "commentId", "value": "replace_with_comment_id"}]
+            }
+          }
+        },
+        {
+          "name": "get-comments-by-report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{domain}}{{baseapi}}/comments/get-comments-by-report/:reportId",
+              "host": ["{{domain}}"],
+              "path": ["{{baseapi}}", "comments", "get-comments-by-report", ":reportId"],
+              "variable": [{"key": "reportId", "value": "replace_with_report_id"}]
+            }
+          }
+        },
+        {
+          "name": "update-comment",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "content", "value": "Updated comment content", "type": "text" },
+                { "key": "image", "type": "file" }
+              ]
+            },
+            "url": {
+              "raw": "{{domain}}{{baseapi}}/comments/update-comment/:commentId",
+              "host": ["{{domain}}"],
+              "path": ["{{baseapi}}", "comments", "update-comment", ":commentId"],
+              "variable": [{"key": "commentId", "value": "replace_with_comment_id"}]
+            }
+          }
+        },
+        {
+          "name": "toggle-like",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{domain}}{{baseapi}}/comments/toggle-like/:commentId",
+              "host": ["{{domain}}"],
+              "path": ["{{baseapi}}", "comments", "toggle-like", ":commentId"],
+              "variable": [{"key": "commentId", "value": "replace_with_comment_id"}]
+            }
+          }
+        },
+        {
+          "name": "delete-comment",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{domain}}{{baseapi}}/comments/delete-comment/:commentId",
+              "host": ["{{domain}}"],
+              "path": ["{{baseapi}}", "comments", "delete-comment", ":commentId"],
+              "variable": [{"key": "commentId", "value": "replace_with_comment_id"}]
             }
           }
         }
@@ -408,6 +506,11 @@
     {
       "key": "domain",
       "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "baseapi",
+      "value": "/api/v1",
       "type": "string"
     }
   ]

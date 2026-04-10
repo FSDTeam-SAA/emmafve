@@ -149,6 +149,16 @@ export const reportService = {
         .limit(perPage)
         .sort({ createdAt: sortOrder })
         .populate("author", "firstName lastName email profileImage")
+        .populate({
+          path: "comments",
+          select: "-__v -report",
+          populate: [
+            { path: "author", select: "firstName lastName profileImage" },
+            { path: "replies", select: "-__v", populate: { path: "author", select: "firstName lastName profileImage" } },
+            { path: "likes", select: "firstName lastName profileImage" }
+
+          ]
+        })
         .lean(),
       reportModel.countDocuments(filter),
     ]);
@@ -168,7 +178,17 @@ export const reportService = {
   async getReportById(reportId: string) {
     const report = await reportModel
       .findById(reportId)
-      .populate("author", "firstName lastName email profileImage");
+      .populate("author", "firstName lastName email profileImage")
+      .populate({
+        path: "comments",
+        select: "-__v -report",
+        populate: [
+          { path: "author", select: "firstName lastName profileImage" },
+          { path: "replies", select: "-__v", populate: { path: "author", select: "firstName lastName profileImage" } },
+          { path: "likes", select: "firstName lastName profileImage" }
+
+        ]
+      })
 
     if (!report) {
       throw new CustomError(404, "Report not found");
