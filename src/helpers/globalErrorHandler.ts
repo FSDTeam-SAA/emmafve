@@ -20,6 +20,7 @@ const developmentError = (error: CustomError, res: Response): Response => {
   const sequentialStack = [...header, ...origins, ...others];
 
   const errorResponse: any = {
+    message: error.message,
     success: false,
     status: error.status,
     statusCode: error.statusCode,

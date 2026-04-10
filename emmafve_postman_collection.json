@@ -1,0 +1,414 @@
+{
+  "info": {
+    "name": "Emmafve API Collection",
+    "description": "Postman collection covering the auth, user, and reports modules with explicitly formatted action inputs, parameters, and bodies.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "auth",
+      "item": [
+        {
+          "name": "register-user",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+123456789\",\n  \"address\": \"123 Street\",\n  \"company\": \"Company Co\",\n  \"password\": \"Password@123\",\n  \"role\": \"user\"\n}"
+            },
+            "url": {
+              "raw": "{{domain}}/api/v1/auth/register-user",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "auth", "register-user"]
+            }
+          }
+        },
+        {
+          "name": "login",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"Password@123\"\n}"
+            },
+            "url": {
+              "raw": "{{domain}}/api/v1/auth/login",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "auth", "login"]
+            }
+          }
+        },
+        {
+          "name": "logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{domain}}/api/v1/auth/logout",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "auth", "logout"]
+            }
+          }
+        },
+        {
+          "name": "forget-password",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{domain}}/api/v1/auth/forget-password",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "auth", "forget-password"]
+            }
+          }
+        },
+        {
+          "name": "verify-otp",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{domain}}/api/v1/auth/verify-otp",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "auth", "verify-otp"]
+            }
+          }
+        },
+        {
+          "name": "reset-password",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"password\": \"NewPassword@123\",\n  \"confirmPassword\": \"NewPassword@123\"\n}"
+            },
+            "url": {
+              "raw": "{{domain}}/api/v1/auth/reset-password/:token",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "auth", "reset-password", ":token"],
+              "variable": [{"key": "token", "value": "paste_reset_token_here"}]
+            }
+          }
+        },
+        {
+          "name": "verify-account",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john@example.com\",\n  \"otp\": \"123456\"\n}"
+            },
+            "url": {
+              "raw": "{{domain}}/api/v1/auth/verify-account",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "auth", "verify-account"]
+            }
+          }
+        },
+        {
+          "name": "google-login",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"google_id_token_here\"\n}"
+            },
+            "url": {
+              "raw": "{{domain}}/api/v1/auth/google-login",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "auth", "google-login"]
+            }
+          }
+        },
+        {
+          "name": "apple-login",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"idToken\": \"apple_id_token_here\"\n}"
+            },
+            "url": {
+              "raw": "{{domain}}/api/v1/auth/apple-login",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "auth", "apple-login"]
+            }
+          }
+        },
+        {
+          "name": "generate-access-token",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{domain}}/api/v1/auth/generate-access-token",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "auth", "generate-access-token"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "user",
+      "item": [
+        {
+          "name": "get-all-user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{domain}}/api/v1/user/get-all-user",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "user", "get-all-user"]
+            }
+          }
+        },
+        {
+          "name": "get-single-user",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{domain}}/api/v1/user/get-single-user/:userId",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "user", "get-single-user", ":userId"],
+              "variable": [{"key": "userId", "value": "replace_with_user_id"}]
+            }
+          }
+        },
+        {
+          "name": "get-my-profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{domain}}/api/v1/user/get-my-profile",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "user", "get-my-profile"]
+            }
+          }
+        },
+        {
+          "name": "update-user",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "firstName", "value": "Jane", "type": "text" },
+                { "key": "lastName", "value": "Doe", "type": "text" },
+                { "key": "phone", "value": "+987654321", "type": "text" },
+                { "key": "image", "type": "file" }
+              ]
+            },
+            "url": {
+              "raw": "{{domain}}/api/v1/user/update-user",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "user", "update-user"]
+            }
+          }
+        },
+        {
+          "name": "update-status",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"inactive\"\n}"
+            },
+            "url": {
+              "raw": "{{domain}}/api/v1/user/update-status/:userId",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "user", "update-status", ":userId"],
+              "variable": [{"key": "userId", "value": "replace_with_user_id"}]
+            }
+          }
+        },
+        {
+          "name": "update-password",
+          "request": {
+            "method": "PATCH",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"currentPassword\": \"Password@123\",\n  \"newPassword\": \"NewPassword@123\"\n}"
+            },
+            "url": {
+              "raw": "{{domain}}/api/v1/user/update-password",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "user", "update-password"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "reports",
+      "item": [
+        {
+          "name": "get-all-reports",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{domain}}/api/v1/reports/get-all-reports?page=1&limit=10&search=White&status=all&sort=descending&from=2023-01-01&to=2024-01-01",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "reports", "get-all-reports"],
+              "query": [
+                { "key": "page", "value": "1", "description": "Page number" },
+                { "key": "limit", "value": "10", "description": "Items per page" },
+                { "key": "search", "value": "White", "description": "Search in title/breed/description" },
+                { "key": "status", "value": "all", "description": "lost, found, rescued, sighted, or all" },
+                { "key": "sort", "value": "descending", "description": "ascending or descending" },
+                { "key": "from", "value": "2023-01-01", "description": "Date range start" },
+                { "key": "to", "value": "2024-01-01", "description": "Date range end" },
+                { "key": "species", "value": "Cat", "description": "Filter by species", "disabled": true }
+              ]
+            }
+          }
+        },
+        {
+          "name": "get-single-report",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{domain}}/api/v1/reports/get-single-report/:reportId",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "reports", "get-single-report", ":reportId"],
+              "variable": [{"key": "reportId", "value": "replace_with_report_id"}]
+            }
+          }
+        },
+        {
+          "name": "create-report",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "title", "value": "White kitten", "type": "text" },
+                { "key": "species", "value": "Cat", "type": "text" },
+                { "key": "breed", "value": "European", "type": "text" },
+                { "key": "gender", "value": "Female", "type": "text" },
+                { "key": "age", "value": "Junior", "type": "text" },
+                { "key": "status", "value": "rescued", "type": "text" },
+                { "key": "eventDate", "value": "2023-08-03T14:00:00.000Z", "type": "text" },
+                { "key": "description", "value": "I just rescued this little white and gray kitten...", "type": "text" },
+                { "key": "hasMicrochip", "value": "Unknown", "type": "text" },
+                { "key": "hasTattoo", "value": "Unknown", "type": "text" },
+                { "key": "hasCollarOrHarness", "value": "Yes", "type": "text" },
+                { "key": "contactPhone", "value": "+33123456789", "type": "text" },
+                { "key": "isPhoneVisible", "value": "true", "type": "text" },
+                { "key": "contactEmail", "value": "email@domain.com", "type": "text" },
+                { "key": "isEmailVisible", "value": "true", "type": "text" },
+                { "key": "location", "value": "{\"type\":\"Point\",\"coordinates\":[5.3371,43.6277],\"address\":\"Lambesc, France\"}", "type": "text" },
+                { "key": "images", "type": "file" }
+              ]
+            },
+            "url": {
+              "raw": "{{domain}}/api/v1/reports/create-report",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "reports", "create-report"]
+            }
+          }
+        },
+        {
+          "name": "update-report",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "status", "value": "sighted", "type": "text" },
+                { "key": "hasCollarOrHarness", "value": "No", "type": "text" },
+                { "key": "images", "type": "file" }
+              ]
+            },
+            "url": {
+              "raw": "{{domain}}/api/v1/reports/update-report/:reportId",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "reports", "update-report", ":reportId"],
+              "variable": [{"key": "reportId", "value": "replace_with_report_id"}]
+            }
+          }
+        },
+        {
+          "name": "delete-report",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{domain}}/api/v1/reports/delete-report/:reportId",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "reports", "delete-report", ":reportId"],
+              "variable": [{"key": "reportId", "value": "replace_with_report_id"}]
+            }
+          }
+        },
+        {
+          "name": "add-image",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "image", "type": "file" }
+              ]
+            },
+            "url": {
+              "raw": "{{domain}}/api/v1/reports/add-image/:reportId",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "reports", "add-image", ":reportId"],
+              "variable": [{"key": "reportId", "value": "replace_with_report_id"}]
+            }
+          }
+        },
+        {
+          "name": "remove-image",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"public_id\": \"sample_public_id\"\n}"
+            },
+            "url": {
+              "raw": "{{domain}}/api/v1/reports/remove-image/:reportId",
+              "host": ["{{domain}}"],
+              "path": ["api", "v1", "reports", "remove-image", ":reportId"],
+              "variable": [{"key": "reportId", "value": "replace_with_report_id"}]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "domain",
+      "value": "http://localhost:5000",
+      "type": "string"
+    }
+  ]
+}
