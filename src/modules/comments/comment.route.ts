@@ -12,6 +12,8 @@ import {
 } from "./comment.controller";
 import { authGuard } from "../../middleware/auth.middleware";
 import { upload } from "../../middleware/multer.midleware";
+import { commentValidation } from "./comment.validation";
+import { validateRequest } from "../../middleware/validateRequest.middleware";
 
 const router = Router();
 
@@ -22,16 +24,38 @@ router.get("/get-single-comment/:commentId", getCommentById);
 // Protected routes
 router.use(authGuard);
 
-router.post("/create-comment", upload.single("image"), createComment);
-router.patch("/update-comment/:commentId", upload.single("image"), updateComment);
+router.post(
+  "/create-comment",
+  upload.single("image"),
+  validateRequest(commentValidation.createCommentSchema),
+  createComment
+);
+
+router.patch(
+  "/update-comment/:commentId",
+  upload.single("image"),
+  validateRequest(commentValidation.updateCommentSchema),
+  updateComment
+);
+
 router.delete("/delete-comment/:commentId", deleteComment);
 router.post("/toggle-like/:commentId", toggleLike);
 
+// APIs for reply
+router.post(
+  "/create-reply/:commentId",
+  upload.single("image"),
+  validateRequest(commentValidation.createReplySchema),
+  createReply
+);
 
-//here is the api for reply
-router.post("/create-reply/:commentId", upload.single("image"), createReply);
-router.patch("/update-reply/:replyId", upload.single("image"), updateReply);
+router.patch(
+  "/update-reply/:replyId",
+  upload.single("image"),
+  validateRequest(commentValidation.updateReplySchema),
+  updateReply
+);
+
 router.delete("/delete-reply/:replyId", deleteReply);
-
 
 export const commentRoute = router;
