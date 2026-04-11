@@ -54,6 +54,117 @@ export const commentService = {
     return newComment;
   },
 
+  // Create a reply specifically via commentId from params
+  async createReply(req: Request) {
+    const authorId = req.user?._id;
+    const { commentId: parentId } = req.params;
+    const { content, reportId } = req.body;
+    const image = req.file;
+
+    // Verify parent comment exists
+    const parentComment = await commentModel.findById(parentId);
+    if (!parentComment) {
+      throw new CustomError(404, "Parent comment not found");
+    }
+
+    // Verify report exists
+    const report = await reportModel.findById(reportId);
+    if (!report) {
+      throw new CustomError(404, "Report not found");
+    }
+
+    let imageData = undefined;
+    if (image) {
+      const result = await uploadCloudinary(image.path);
+      if (result) {
+        imageData = result;
+      }
+    }
+
+    const replyData: any = {
+      content,
+      author: authorId,
+      report: reportId,
+      parent: parentId,
+      image: imageData,
+    };
+
+    const newReply = await commentModel.create(replyData);
+
+    // Push ID to report
+    await reportModel.findByIdAndUpdate(reportId, {
+      $push: { comments: newReply._id }
+    });
+
+    // Populate author before returning
+    await newReply.populate("author", "firstName lastName profileImage");
+
+    return newReply;
+  },
+
+  // Update a specific reply (with author check)
+  async updateReply(req: Request) {
+    const authorId = req.user?._id;
+    const { replyId } = req.params;
+    const { content } = req.body;
+    const image = req.file;
+
+    const reply = await commentModel.findById(replyId);
+    if (!reply || reply.isDeleted) {
+      throw new CustomError(404, "Reply not found");
+    }
+
+    // Authorization check: "cant edit/delete others"
+    if (reply.author.toString() !== authorId?.toString()) {
+      throw new CustomError(403, "You can only edit your own replies");
+    }
+
+    if (content) {
+      reply.content = content;
+    }
+
+    if (image) {
+      if (reply.image?.public_id) {
+        await deleteCloudinary(reply.image.public_id);
+      }
+      const result = await uploadCloudinary(image.path);
+      if (result) {
+        reply.image = result;
+      }
+    }
+
+    await reply.save();
+    return reply;
+  },
+
+  // Delete a specific reply (with author check)
+  async deleteReply(replyId: string, userId: string) {
+    const reply = await commentModel.findById(replyId);
+    if (!reply || reply.isDeleted) {
+      throw new CustomError(404, "Reply not found");
+    }
+
+    // Authorization check: "cant edit/delete others"
+    if (reply.author.toString() !== userId) {
+      throw new CustomError(403, "You can only delete your own replies");
+    }
+
+    // Delete from Cloudinary
+    if (reply.image?.public_id) {
+      await deleteCloudinary(reply.image.public_id);
+    }
+
+    // Hard delete from DB as per current code convention for comments
+    await reply.deleteOne();
+
+    // Pull from report
+    await reportModel.findByIdAndUpdate(reply.report, {
+      $pull: { comments: replyId }
+    });
+
+    return true;
+  },
+
   // Get all comments for a report (nested)
   async getCommentsByReport(reportId: string) {
     const comments = await commentModel.find({ report: reportId, parent: null, isDeleted: false })

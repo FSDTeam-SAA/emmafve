@@ -23,7 +23,7 @@
               "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+123456789\",\n  \"address\": \"123 Street\",\n  \"company\": \"Company Co\",\n  \"password\": \"Password@123\",\n  \"role\": \"user\"\n}"
             },
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/auth/register-user",
+              "raw": "{{domain}}{{baseapi}}/auth/register-user",
               "host": [
                 "{{domain}}"
               ],
@@ -50,7 +50,7 @@
               "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"Password@123\"\n}"
             },
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/auth/login",
+              "raw": "{{domain}}{{baseapi}}/auth/login",
               "host": [
                 "{{domain}}"
               ],
@@ -77,7 +77,7 @@
               "raw": "{\"email\":\"john@example.com\",\"otp\":\"123456\"}"
             },
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/auth/verify-account",
+              "raw": "{{domain}}{{baseapi}}/auth/verify-account",
               "host": [
                 "{{domain}}"
               ],
@@ -104,7 +104,7 @@
               "raw": "{\"email\":\"john@example.com\"}"
             },
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/auth/forget-password",
+              "raw": "{{domain}}{{baseapi}}/auth/forget-password",
               "host": [
                 "{{domain}}"
               ],
@@ -131,7 +131,7 @@
               "raw": "{\"email\":\"john@example.com\",\"otp\":\"123456\"}"
             },
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/auth/verify-otp",
+              "raw": "{{domain}}{{baseapi}}/auth/verify-otp",
               "host": [
                 "{{domain}}"
               ],
@@ -158,7 +158,7 @@
               "raw": "{\"password\":\"NewPass@123\",\"confirmPassword\":\"NewPass@123\"}"
             },
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/auth/reset-password/:token",
+              "raw": "{{domain}}{{baseapi}}/auth/reset-password/:token",
               "host": [
                 "{{domain}}"
               ],
@@ -192,7 +192,7 @@
               "raw": "{\"idToken\":\"token\"}"
             },
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/auth/google-login",
+              "raw": "{{domain}}{{baseapi}}/auth/google-login",
               "host": [
                 "{{domain}}"
               ],
@@ -219,7 +219,7 @@
               "raw": "{\"idToken\":\"token\"}"
             },
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/auth/apple-login",
+              "raw": "{{domain}}{{baseapi}}/auth/apple-login",
               "host": [
                 "{{domain}}"
               ],
@@ -242,7 +242,7 @@
               }
             ],
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/auth/logout",
+              "raw": "{{domain}}{{baseapi}}/auth/logout",
               "host": [
                 "{{domain}}"
               ],
@@ -259,7 +259,7 @@
           "request": {
             "method": "POST",
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/auth/generate-access-token",
+              "raw": "{{domain}}{{baseapi}}/auth/generate-access-token",
               "host": [
                 "{{domain}}"
               ],
@@ -287,7 +287,7 @@
               }
             ],
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/user/get-all-user?page=1&limit=10",
+              "raw": "{{domain}}{{baseapi}}/user/get-all-user?page=1&limit=10",
               "host": [
                 "{{domain}}"
               ],
@@ -320,7 +320,7 @@
               }
             ],
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/user/get-single-user/:userId",
+              "raw": "{{domain}}{{baseapi}}/user/get-single-user/:userId",
               "host": [
                 "{{domain}}"
               ],
@@ -350,7 +350,7 @@
               }
             ],
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/user/get-my-profile",
+              "raw": "{{domain}}{{baseapi}}/user/get-my-profile",
               "host": [
                 "{{domain}}"
               ],
@@ -392,7 +392,7 @@
               ]
             },
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/user/update-user",
+              "raw": "{{domain}}{{baseapi}}/user/update-user",
               "host": [
                 "{{domain}}"
               ],
@@ -419,7 +419,7 @@
               "raw": "{\"status\":\"active\"}"
             },
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/user/update-status/:userId",
+              "raw": "{{domain}}{{baseapi}}/user/update-status/:userId",
               "host": [
                 "{{domain}}"
               ],
@@ -453,7 +453,7 @@
               "raw": "{\"currentPassword\":\"OldPass@123\",\"newPassword\":\"NewPass@123\",\"confirmPassword\":\"NewPass@123\"}"
             },
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/user/update-password",
+              "raw": "{{domain}}{{baseapi}}/user/update-password",
               "host": [
                 "{{domain}}"
               ],
@@ -545,7 +545,7 @@
               ]
             },
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/reports/create-report",
+              "raw": "{{domain}}{{baseapi}}/reports/create-report",
               "host": [
                 "{{domain}}"
               ],
@@ -562,7 +562,7 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/reports/get-all-reports?page=1&limit=10&search=Buddy&status=all",
+              "raw": "{{domain}}{{baseapi}}/reports/get-all-reports?page=1&limit=10&search=Buddy&status=all",
               "host": [
                 "{{domain}}"
               ],
@@ -597,7 +597,7 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/reports/get-single-report/:reportId",
+              "raw": "{{domain}}{{baseapi}}/reports/get-single-report/:reportId",
               "host": [
                 "{{domain}}"
               ],
@@ -637,7 +637,7 @@
               ]
             },
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/reports/update-report/:reportId",
+              "raw": "{{domain}}{{baseapi}}/reports/update-report/:reportId",
               "host": [
                 "{{domain}}"
               ],
@@ -667,7 +667,7 @@
               }
             ],
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/reports/delete-report/:reportId",
+              "raw": "{{domain}}{{baseapi}}/reports/delete-report/:reportId",
               "host": [
                 "{{domain}}"
               ],
@@ -706,7 +706,7 @@
               ]
             },
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/reports/add-image/:reportId",
+              "raw": "{{domain}}{{baseapi}}/reports/add-image/:reportId",
               "host": [
                 "{{domain}}"
               ],
@@ -744,7 +744,7 @@
               "raw": "{\"public_id\":\"id\"}"
             },
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/reports/remove-image/:reportId",
+              "raw": "{{domain}}{{baseapi}}/reports/remove-image/:reportId",
               "host": [
                 "{{domain}}"
               ],
@@ -798,7 +798,7 @@
               ]
             },
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/comments/create-comment",
+              "raw": "{{domain}}{{baseapi}}/comments/create-comment",
               "host": [
                 "{{domain}}"
               ],
@@ -811,11 +811,93 @@
           }
         },
         {
+          "name": "create-reply-via-id(User/Admin/Partner)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "content",
+                  "value": "Great point! I agree.",
+                  "type": "text"
+                },
+                {
+                  "key": "reportId",
+                  "value": "REPLACE_ID",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "type": "file"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{domain}}{{baseapi}}/comments/create-reply/:commentId",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "comments",
+                "create-reply",
+                ":commentId"
+              ],
+              "variable": [
+                {
+                  "key": "commentId",
+                  "value": "id"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "update-reply(User/Admin/Partner)",
+          "request": {
+            "method": "PATCH",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                { "key": "content", "value": "I'm updating my reply here.", "type": "text" },
+                { "key": "image", "type": "file" }
+              ]
+            },
+            "url": {
+              "raw": "{{domain}}{{baseapi}}/comments/update-reply/:replyId",
+              "host": ["{{domain}}"],
+              "path": ["{{baseapi}}", "comments", "update-reply", ":replyId"],
+              "variable": [{"key": "replyId", "value": "id"}]
+            }
+          }
+        },
+        {
+          "name": "delete-reply(User/Admin/Partner)",
+          "request": {
+            "method": "DELETE",
+            "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }],
+            "url": {
+              "raw": "{{domain}}{{baseapi}}/comments/delete-reply/:replyId",
+              "host": ["{{domain}}"],
+              "path": ["{{baseapi}}", "comments", "delete-reply", ":replyId"],
+              "variable": [{"key": "replyId", "value": "id"}]
+            }
+          }
+        },
+        {
           "name": "get-comments-by-report(Public)",
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/comments/get-comments-by-report/:reportId",
+              "raw": "{{domain}}{{baseapi}}/comments/get-comments-by-report/:reportId",
               "host": [
                 "{{domain}}"
               ],
@@ -839,7 +921,7 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/comments/get-single-comment/:commentId",
+              "raw": "{{domain}}{{baseapi}}/comments/get-single-comment/:commentId",
               "host": [
                 "{{domain}}"
               ],
@@ -879,7 +961,7 @@
               ]
             },
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/comments/update-comment/:commentId",
+              "raw": "{{domain}}{{baseapi}}/comments/update-comment/:commentId",
               "host": [
                 "{{domain}}"
               ],
@@ -909,7 +991,7 @@
               }
             ],
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/comments/toggle-like/:commentId",
+              "raw": "{{domain}}{{baseapi}}/comments/toggle-like/:commentId",
               "host": [
                 "{{domain}}"
               ],
@@ -939,7 +1021,7 @@
               }
             ],
             "url": {
-              "raw": "{{domain}}/{{baseapi}}/comments/delete-comment/:commentId",
+              "raw": "{{domain}}{{baseapi}}/comments/delete-comment/:commentId",
               "host": [
                 "{{domain}}"
               ],

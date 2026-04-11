@@ -33,6 +33,24 @@ export const deleteComment = asyncHandler(async (req: Request, res: Response) =>
   ApiResponse.sendSuccess(res, 200, "Comment deleted successfully");
 });
 
+export const createReply = asyncHandler(async (req: Request, res: Response) => {
+  const reply = await commentService.createReply(req);
+  ApiResponse.sendSuccess(res, 201, "Reply created successfully", reply);
+});
+
+export const updateReply = asyncHandler(async (req: Request, res: Response) => {
+  const reply = await commentService.updateReply(req);
+  ApiResponse.sendSuccess(res, 200, "Reply updated successfully", reply);
+});
+
+export const deleteReply = asyncHandler(async (req: Request, res: Response) => {
+  const userId = req.user?._id?.toString();
+  if (!userId) throw new Error("User ID not found");
+  const { replyId } = req.params;
+  await commentService.deleteReply(replyId as string, userId);
+  ApiResponse.sendSuccess(res, 200, "Reply deleted successfully");
+});
+
 export const toggleLike = asyncHandler(async (req: Request, res: Response) => {
   const userId = req.user?._id?.toString();
   if (!userId) throw new Error("User ID not found");
