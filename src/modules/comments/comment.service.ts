@@ -164,4 +164,16 @@ export const commentService = {
 
     return true;
   },
+
+  // Delete all comments for a report (internal use)
+  async deleteAllCommentsByReport(reportId: string) {
+    const comments = await commentModel.find({ report: reportId });
+    for (const comment of comments) {
+      if (comment.image?.public_id) {
+        await deleteCloudinary(comment.image.public_id);
+      }
+    }
+    await commentModel.deleteMany({ report: reportId });
+    return true;
+  },
 };

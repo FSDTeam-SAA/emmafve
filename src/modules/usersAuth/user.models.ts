@@ -39,6 +39,10 @@ const userSchema = new Schema<IUser>(
       trim: true,
       maxLength: 100,
     },
+    profession: {
+      type: String,
+      trim: true,
+    },
 
     password: {
       type: String,

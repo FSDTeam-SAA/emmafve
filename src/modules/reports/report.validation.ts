@@ -11,14 +11,18 @@ const locationSchema = z.object({
 
 export const createReportSchema = z
   .object({
-  title: z.string().min(1, "Title is required"),
+  animalName: z.string().min(1, "Animal name is required"),
+  title: z.string().optional(),
   species: z.enum(Object.values(AnimalSpecies) as [string, ...string[]]),
   breed: z.string().min(1, "Breed is required"),
   gender: z.enum(Object.values(AnimalGender) as [string, ...string[]]),
   age: z.enum(Object.values(AnimalAge) as [string, ...string[]]),
   status: z.enum(Object.values(ReportStatus) as [string, ...string[]]),
   eventDate: z.string().datetime({ message: "Invalid ISO datetime format" }),
-  description: z.string().min(1, "Description is required"),
+  description: z.string().min(1, "Description is required").refine(
+    (val) => val.trim().split(/\s+/).length <= 500,
+    { message: "Description cannot exceed 500 words" }
+  ),
   hasMicrochip: z.enum(Object.values(YesNoUnknown) as [string, ...string[]]),
   hasTattoo: z.enum(Object.values(YesNoUnknown) as [string, ...string[]]),
   hasCollarOrHarness: z.enum(Object.values(YesNoUnknown) as [string, ...string[]]),
@@ -46,6 +50,7 @@ export const createReportSchema = z
     }
     return val;
   }, locationSchema),
+  images: z.any().optional(),
 })
 .strict();
 

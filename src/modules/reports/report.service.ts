@@ -3,6 +3,7 @@ import { reportModel } from "./report.models";
 import CustomError from "../../helpers/CustomError";
 import { uploadCloudinary, deleteCloudinary } from "../../helpers/cloudinary";
 import { CreateReportPayload, UpdateReportPayload } from "./report.interface";
+import { commentService } from "../comments/comment.service";
 
 export const reportService = {
   // Create a new report
@@ -39,12 +40,18 @@ export const reportService = {
       }
     }
 
-    const payload = {
+    const payload: any = {
       ...body,
       location: locationData,
       images,
       author: authorId,
     };
+
+    // Auto-generate title if missing
+    if (!payload.title && payload.animalName) {
+      const statusLabel = payload.status.charAt(0).toUpperCase() + payload.status.slice(1);
+      payload.title = `${statusLabel} ${payload.species} - ${payload.animalName}`;
+    }
 
     if (payload.isPhoneVisible === 'true') payload.isPhoneVisible = true;
     if (payload.isPhoneVisible === 'false') payload.isPhoneVisible = false;
@@ -78,6 +85,7 @@ export const reportService = {
     if (search) {
       const searchRegex = new RegExp(search as string, "i");
       filter.$or = [
+        { animalName: searchRegex },
         { title: searchRegex },
         { breed: searchRegex },
         { description: searchRegex },
@@ -253,11 +261,20 @@ export const reportService = {
       }
     }
 
-    const payload = {
+    const payload: any = {
       ...body,
       location: locationData,
       images,
     };
+
+    // Auto-generate title if missing or animalName changed and title is empty
+    if (!payload.title && (payload.animalName || report.animalName)) {
+      const animalName = payload.animalName || report.animalName;
+      const species = payload.species || report.species;
+      const status = payload.status || report.status;
+      const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+      payload.title = `${statusLabel} ${species} - ${animalName}`;
+    }
 
     if (payload.isPhoneVisible === 'true') payload.isPhoneVisible = true;
     if (payload.isPhoneVisible === 'false') payload.isPhoneVisible = false;
@@ -287,6 +304,10 @@ export const reportService = {
     }
 
     await reportModel.findByIdAndDelete(reportId);
+
+    // Delete associated comments
+    await commentService.deleteAllCommentsByReport(reportId);
+
     if (report.images && report.images.length > 0) {
       for (const img of report.images) {
         if (img.public_id) {

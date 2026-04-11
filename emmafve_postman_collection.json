@@ -1,7 +1,7 @@
 {
   "info": {
-    "name": "Emmafve API Collection",
-    "description": "Postman collection covering the auth, user, and reports modules with explicitly formatted action inputs, parameters, and bodies.",
+    "name": "Emmafve API - The Ultimate Master Collection",
+    "description": "Exhaustive Postman collection covering 100% of the Emmafve project routes with full URL visibility and data completeness.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -9,155 +9,265 @@
       "name": "auth",
       "item": [
         {
-          "name": "register-user",
+          "name": "register-user(Public)",
           "request": {
             "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+123456789\",\n  \"address\": \"123 Street\",\n  \"company\": \"Company Co\",\n  \"password\": \"Password@123\",\n  \"role\": \"user\"\n}"
             },
             "url": {
-              "raw": "{{domain}}{{baseapi}}/auth/register-user",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "auth", "register-user"]
+              "raw": "{{domain}}/{{baseapi}}/auth/register-user",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "auth",
+                "register-user"
+              ]
             }
           }
         },
         {
-          "name": "login",
+          "name": "login(Public)",
           "request": {
             "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"Password@123\"\n}"
             },
             "url": {
-              "raw": "{{domain}}{{baseapi}}/auth/login",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "auth", "login"]
+              "raw": "{{domain}}/{{baseapi}}/auth/login",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "auth",
+                "login"
+              ]
             }
           }
         },
         {
-          "name": "verify-otp",
+          "name": "verify-account(Public)",
           "request": {
             "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"john@example.com\",\n  \"otp\": \"123456\"\n}"
+              "raw": "{\"email\":\"john@example.com\",\"otp\":\"123456\"}"
             },
             "url": {
-              "raw": "{{domain}}{{baseapi}}/auth/verify-otp",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "auth", "verify-otp"]
+              "raw": "{{domain}}/{{baseapi}}/auth/verify-account",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "auth",
+                "verify-account"
+              ]
             }
           }
         },
         {
-          "name": "verify-account",
+          "name": "forget-password(Public)",
           "request": {
             "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"john@example.com\",\n  \"otp\": \"123456\"\n}"
+              "raw": "{\"email\":\"john@example.com\"}"
             },
             "url": {
-              "raw": "{{domain}}{{baseapi}}/auth/verify-account",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "auth", "verify-account"]
+              "raw": "{{domain}}/{{baseapi}}/auth/forget-password",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "auth",
+                "forget-password"
+              ]
             }
           }
         },
         {
-          "name": "forget-password",
+          "name": "verify-otp(Public)",
           "request": {
             "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"john@example.com\"\n}"
+              "raw": "{\"email\":\"john@example.com\",\"otp\":\"123456\"}"
             },
             "url": {
-              "raw": "{{domain}}{{baseapi}}/auth/forget-password",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "auth", "forget-password"]
+              "raw": "{{domain}}/{{baseapi}}/auth/verify-otp",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "auth",
+                "verify-otp"
+              ]
             }
           }
         },
         {
-          "name": "reset-password",
+          "name": "reset-password(Public)",
           "request": {
             "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"password\": \"NewPassword@123\",\n  \"confirmPassword\": \"NewPassword@123\"\n}"
+              "raw": "{\"password\":\"NewPass@123\",\"confirmPassword\":\"NewPass@123\"}"
             },
             "url": {
-              "raw": "{{domain}}{{baseapi}}/auth/reset-password/:token",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "auth", "reset-password", ":token"],
-              "variable": [{"key": "token", "value": "paste_reset_token_here"}]
+              "raw": "{{domain}}/{{baseapi}}/auth/reset-password/:token",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "auth",
+                "reset-password",
+                ":token"
+              ],
+              "variable": [
+                {
+                  "key": "token",
+                  "value": "token"
+                }
+              ]
             }
           }
         },
         {
-          "name": "google-login",
+          "name": "google-login(Public)",
           "request": {
             "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"idToken\": \"google_id_token_here\"\n}"
+              "raw": "{\"idToken\":\"token\"}"
             },
             "url": {
-              "raw": "{{domain}}{{baseapi}}/auth/google-login",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "auth", "google-login"]
+              "raw": "{{domain}}/{{baseapi}}/auth/google-login",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "auth",
+                "google-login"
+              ]
             }
           }
         },
         {
-          "name": "apple-login",
+          "name": "apple-login(Public)",
           "request": {
             "method": "POST",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"idToken\": \"apple_id_token_here\"\n}"
+              "raw": "{\"idToken\":\"token\"}"
             },
             "url": {
-              "raw": "{{domain}}{{baseapi}}/auth/apple-login",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "auth", "apple-login"]
+              "raw": "{{domain}}/{{baseapi}}/auth/apple-login",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "auth",
+                "apple-login"
+              ]
             }
           }
         },
         {
-          "name": "generate-access-token",
+          "name": "logout(User/Admin/Partner)",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "url": {
-              "raw": "{{domain}}{{baseapi}}/auth/generate-access-token",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "auth", "generate-access-token"]
+              "raw": "{{domain}}/{{baseapi}}/auth/logout",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "auth",
+                "logout"
+              ]
             }
           }
         },
         {
-          "name": "logout",
+          "name": "generate-access-token(Public)",
           "request": {
             "method": "POST",
-            "header": [],
             "url": {
-              "raw": "{{domain}}{{baseapi}}/auth/logout",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "auth", "logout"]
+              "raw": "{{domain}}/{{baseapi}}/auth/generate-access-token",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "auth",
+                "generate-access-token"
+              ]
             }
           }
         }
@@ -167,93 +277,191 @@
       "name": "user",
       "item": [
         {
-          "name": "get-single-user",
+          "name": "get-all-user(Admin)",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
             "url": {
-              "raw": "{{domain}}{{baseapi}}/user/get-single-user/:userId",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "user", "get-single-user", ":userId"],
-              "variable": [{"key": "userId", "value": "replace_with_user_id"}]
+              "raw": "{{domain}}/{{baseapi}}/user/get-all-user?page=1&limit=10",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "user",
+                "get-all-user"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
             }
           }
         },
         {
-          "name": "get-my-profile",
+          "name": "get-single-user(User/Admin/Partner)",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "url": {
-              "raw": "{{domain}}{{baseapi}}/user/get-my-profile",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "user", "get-my-profile"]
+              "raw": "{{domain}}/{{baseapi}}/user/get-single-user/:userId",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "user",
+                "get-single-user",
+                ":userId"
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "id"
+                }
+              ]
             }
           }
         },
         {
-          "name": "get-all-user",
+          "name": "get-my-profile(User/Admin/Partner)",
           "request": {
             "method": "GET",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "url": {
-              "raw": "{{domain}}{{baseapi}}/user/get-all-user",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "user", "get-all-user"]
+              "raw": "{{domain}}/{{baseapi}}/user/get-my-profile",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "user",
+                "get-my-profile"
+              ]
             }
           }
         },
         {
-          "name": "update-user",
+          "name": "update-user(User/Admin/Partner)",
           "request": {
             "method": "PATCH",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "firstName", "value": "Jane", "type": "text" },
-                { "key": "lastName", "value": "Doe", "type": "text" },
-                { "key": "phone", "value": "+987654321", "type": "text" },
-                { "key": "image", "type": "file" }
+                {
+                  "key": "firstName",
+                  "value": "Jane",
+                  "type": "text"
+                },
+                {
+                  "key": "profession",
+                  "value": "Vet",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "type": "file"
+                }
               ]
             },
             "url": {
-              "raw": "{{domain}}{{baseapi}}/user/update-user",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "user", "update-user"]
+              "raw": "{{domain}}/{{baseapi}}/user/update-user",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "user",
+                "update-user"
+              ]
             }
           }
         },
         {
-          "name": "update-status",
+          "name": "update-status(Admin)",
           "request": {
             "method": "PATCH",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{adminToken}}"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"inactive\"\n}"
+              "raw": "{\"status\":\"active\"}"
             },
             "url": {
-              "raw": "{{domain}}{{baseapi}}/user/update-status/:userId",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "user", "update-status", ":userId"],
-              "variable": [{"key": "userId", "value": "replace_with_user_id"}]
+              "raw": "{{domain}}/{{baseapi}}/user/update-status/:userId",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "user",
+                "update-status",
+                ":userId"
+              ],
+              "variable": [
+                {
+                  "key": "userId",
+                  "value": "id"
+                }
+              ]
             }
           }
         },
         {
-          "name": "update-password",
+          "name": "update-password(User/Admin/Partner)",
           "request": {
             "method": "PATCH",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"currentPassword\": \"Password@123\",\n  \"newPassword\": \"NewPassword@123\"\n}"
+              "raw": "{\"currentPassword\":\"OldPass@123\",\"newPassword\":\"NewPass@123\",\"confirmPassword\":\"NewPass@123\"}"
             },
             "url": {
-              "raw": "{{domain}}{{baseapi}}/user/update-password",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "user", "update-password"]
+              "raw": "{{domain}}/{{baseapi}}/user/update-password",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "user",
+                "update-password"
+              ]
             }
           }
         }
@@ -263,141 +471,295 @@
       "name": "reports",
       "item": [
         {
-          "name": "create-report",
+          "name": "create-report(User/Admin/Partner)",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "title", "value": "White kitten", "type": "text" },
-                { "key": "species", "value": "Cat", "type": "text" },
-                { "key": "breed", "value": "European", "type": "text" },
-                { "key": "gender", "value": "Female", "type": "text" },
-                { "key": "age", "value": "Junior", "type": "text" },
-                { "key": "status", "value": "rescued", "type": "text" },
-                { "key": "eventDate", "value": "2023-08-03T14:00:00.000Z", "type": "text" },
-                { "key": "description", "value": "I just rescued this little white and gray kitten...", "type": "text" },
-                { "key": "hasMicrochip", "value": "Unknown", "type": "text" },
-                { "key": "hasTattoo", "value": "Unknown", "type": "text" },
-                { "key": "hasCollarOrHarness", "value": "Yes", "type": "text" },
-                { "key": "contactPhone", "value": "+33123456789", "type": "text" },
-                { "key": "isPhoneVisible", "value": "true", "type": "text" },
-                { "key": "contactEmail", "value": "email@domain.com", "type": "text" },
-                { "key": "isEmailVisible", "value": "true", "type": "text" },
-                { "key": "location", "value": "{\"type\":\"Point\",\"coordinates\":[5.3371,43.6277],\"address\":\"Lambesc, France\"}", "type": "text" },
-                { "key": "images", "type": "file" }
+                {
+                  "key": "animalName",
+                  "value": "Buddy",
+                  "type": "text"
+                },
+                {
+                  "key": "species",
+                  "value": "Dog",
+                  "type": "text"
+                },
+                {
+                  "key": "breed",
+                  "value": "Goldie",
+                  "type": "text"
+                },
+                {
+                  "key": "gender",
+                  "value": "Male",
+                  "type": "text"
+                },
+                {
+                  "key": "age",
+                  "value": "Adult",
+                  "type": "text"
+                },
+                {
+                  "key": "status",
+                  "value": "lost",
+                  "type": "text"
+                },
+                {
+                  "key": "description",
+                  "value": "Buddy is lost.",
+                  "type": "text"
+                },
+                {
+                  "key": "hasMicrochip",
+                  "value": "Yes",
+                  "type": "text"
+                },
+                {
+                  "key": "hasTattoo",
+                  "value": "No",
+                  "type": "text"
+                },
+                {
+                  "key": "hasCollarOrHarness",
+                  "value": "Unknown",
+                  "type": "text"
+                },
+                {
+                  "key": "location",
+                  "value": "{\"type\":\"Point\",\"coordinates\":[0,0],\"address\":\"Paris\"}",
+                  "type": "text"
+                },
+                {
+                  "key": "images",
+                  "type": "file"
+                }
               ]
             },
             "url": {
-              "raw": "{{domain}}{{baseapi}}/reports/create-report",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "reports", "create-report"]
-            }
-          }
-        },
-        {
-          "name": "get-single-report",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{domain}}{{baseapi}}/reports/get-single-report/:reportId",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "reports", "get-single-report", ":reportId"],
-              "variable": [{"key": "reportId", "value": "replace_with_report_id"}]
-            }
-          }
-        },
-        {
-          "name": "get-all-reports",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{domain}}{{baseapi}}/reports/get-all-reports?page=1&limit=10&search=White&status=all&sort=descending&from=2023-01-01&to=2024-01-01",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "reports", "get-all-reports"],
-              "query": [
-                { "key": "page", "value": "1", "description": "Page number" },
-                { "key": "limit", "value": "10", "description": "Items per page" },
-                { "key": "search", "value": "White", "description": "Search in title/breed/description" },
-                { "key": "status", "value": "all", "description": "lost, found, rescued, sighted, or all" },
-                { "key": "sort", "value": "descending", "description": "ascending or descending" },
-                { "key": "from", "value": "2023-01-01", "description": "Date range start" },
-                { "key": "to", "value": "2024-01-01", "description": "Date range end" },
-                { "key": "species", "value": "Cat", "description": "Filter by species", "disabled": true }
+              "raw": "{{domain}}/{{baseapi}}/reports/create-report",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "reports",
+                "create-report"
               ]
             }
           }
         },
         {
-          "name": "update-report",
+          "name": "get-all-reports(Public)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{domain}}/{{baseapi}}/reports/get-all-reports?page=1&limit=10&search=Buddy&status=all",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "reports",
+                "get-all-reports"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                },
+                {
+                  "key": "search",
+                  "value": "Buddy"
+                },
+                {
+                  "key": "status",
+                  "value": "all"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "get-single-report(Public)",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{domain}}/{{baseapi}}/reports/get-single-report/:reportId",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "reports",
+                "get-single-report",
+                ":reportId"
+              ],
+              "variable": [
+                {
+                  "key": "reportId",
+                  "value": "id"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "update-report(User/Admin/Partner)",
           "request": {
             "method": "PATCH",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "status", "value": "sighted", "type": "text" },
-                { "key": "hasCollarOrHarness", "value": "No", "type": "text" },
-                { "key": "images", "type": "file" }
+                {
+                  "key": "status",
+                  "value": "found",
+                  "type": "text"
+                }
               ]
             },
             "url": {
-              "raw": "{{domain}}{{baseapi}}/reports/update-report/:reportId",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "reports", "update-report", ":reportId"],
-              "variable": [{"key": "reportId", "value": "replace_with_report_id"}]
+              "raw": "{{domain}}/{{baseapi}}/reports/update-report/:reportId",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "reports",
+                "update-report",
+                ":reportId"
+              ],
+              "variable": [
+                {
+                  "key": "reportId",
+                  "value": "id"
+                }
+              ]
             }
           }
         },
         {
-          "name": "add-image",
+          "name": "delete-report(User/Admin/Partner)",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
+            "url": {
+              "raw": "{{domain}}/{{baseapi}}/reports/delete-report/:reportId",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "reports",
+                "delete-report",
+                ":reportId"
+              ],
+              "variable": [
+                {
+                  "key": "reportId",
+                  "value": "id"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "add-image(User/Admin/Partner)",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "image", "type": "file" }
+                {
+                  "key": "image",
+                  "type": "file"
+                }
               ]
             },
             "url": {
-              "raw": "{{domain}}{{baseapi}}/reports/add-image/:reportId",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "reports", "add-image", ":reportId"],
-              "variable": [{"key": "reportId", "value": "replace_with_report_id"}]
+              "raw": "{{domain}}/{{baseapi}}/reports/add-image/:reportId",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "reports",
+                "add-image",
+                ":reportId"
+              ],
+              "variable": [
+                {
+                  "key": "reportId",
+                  "value": "id"
+                }
+              ]
             }
           }
         },
         {
-          "name": "remove-image",
+          "name": "remove-image(User/Admin/Partner)",
           "request": {
             "method": "DELETE",
-            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"public_id\": \"sample_public_id\"\n}"
+              "raw": "{\"public_id\":\"id\"}"
             },
             "url": {
-              "raw": "{{domain}}{{baseapi}}/reports/remove-image/:reportId",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "reports", "remove-image", ":reportId"],
-              "variable": [{"key": "reportId", "value": "replace_with_report_id"}]
-            }
-          }
-        },
-        {
-          "name": "delete-report",
-          "request": {
-            "method": "DELETE",
-            "header": [],
-            "url": {
-              "raw": "{{domain}}{{baseapi}}/reports/delete-report/:reportId",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "reports", "delete-report", ":reportId"],
-              "variable": [{"key": "reportId", "value": "replace_with_report_id"}]
+              "raw": "{{domain}}/{{baseapi}}/reports/remove-image/:reportId",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "reports",
+                "remove-image",
+                ":reportId"
+              ],
+              "variable": [
+                {
+                  "key": "reportId",
+                  "value": "id"
+                }
+              ]
             }
           }
         }
@@ -407,95 +769,192 @@
       "name": "comments",
       "item": [
         {
-          "name": "create-comment",
+          "name": "create-comment(User/Admin/Partner)",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "content", "value": "This is a comment", "type": "text" },
-                { "key": "reportId", "value": "replace_with_report_id", "type": "text" },
-                { "key": "parentId", "value": "replace_with_parent_id_for_replies", "type": "text", "disabled": true },
-                { "key": "image", "type": "file" }
+                {
+                  "key": "content",
+                  "value": "I saw him!",
+                  "type": "text"
+                },
+                {
+                  "key": "reportId",
+                  "value": "id",
+                  "type": "text"
+                },
+                {
+                  "key": "image",
+                  "type": "file"
+                }
               ]
             },
             "url": {
-              "raw": "{{domain}}{{baseapi}}/comments/create-comment",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "comments", "create-comment"]
+              "raw": "{{domain}}/{{baseapi}}/comments/create-comment",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "comments",
+                "create-comment"
+              ]
             }
           }
         },
         {
-          "name": "get-single-comment",
+          "name": "get-comments-by-report(Public)",
           "request": {
             "method": "GET",
-            "header": [],
             "url": {
-              "raw": "{{domain}}{{baseapi}}/comments/get-single-comment/:commentId",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "comments", "get-single-comment", ":commentId"],
-              "variable": [{"key": "commentId", "value": "replace_with_comment_id"}]
+              "raw": "{{domain}}/{{baseapi}}/comments/get-comments-by-report/:reportId",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "comments",
+                "get-comments-by-report",
+                ":reportId"
+              ],
+              "variable": [
+                {
+                  "key": "reportId",
+                  "value": "id"
+                }
+              ]
             }
           }
         },
         {
-          "name": "get-comments-by-report",
+          "name": "get-single-comment(Public)",
           "request": {
             "method": "GET",
-            "header": [],
             "url": {
-              "raw": "{{domain}}{{baseapi}}/comments/get-comments-by-report/:reportId",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "comments", "get-comments-by-report", ":reportId"],
-              "variable": [{"key": "reportId", "value": "replace_with_report_id"}]
+              "raw": "{{domain}}/{{baseapi}}/comments/get-single-comment/:commentId",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "comments",
+                "get-single-comment",
+                ":commentId"
+              ],
+              "variable": [
+                {
+                  "key": "commentId",
+                  "value": "id"
+                }
+              ]
             }
           }
         },
         {
-          "name": "update-comment",
+          "name": "update-comment(User/Admin/Partner)",
           "request": {
             "method": "PATCH",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "body": {
               "mode": "formdata",
               "formdata": [
-                { "key": "content", "value": "Updated comment content", "type": "text" },
-                { "key": "image", "type": "file" }
+                {
+                  "key": "content",
+                  "value": "Updated comment",
+                  "type": "text"
+                }
               ]
             },
             "url": {
-              "raw": "{{domain}}{{baseapi}}/comments/update-comment/:commentId",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "comments", "update-comment", ":commentId"],
-              "variable": [{"key": "commentId", "value": "replace_with_comment_id"}]
+              "raw": "{{domain}}/{{baseapi}}/comments/update-comment/:commentId",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "comments",
+                "update-comment",
+                ":commentId"
+              ],
+              "variable": [
+                {
+                  "key": "commentId",
+                  "value": "id"
+                }
+              ]
             }
           }
         },
         {
-          "name": "toggle-like",
+          "name": "toggle-like(User/Admin/Partner)",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "url": {
-              "raw": "{{domain}}{{baseapi}}/comments/toggle-like/:commentId",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "comments", "toggle-like", ":commentId"],
-              "variable": [{"key": "commentId", "value": "replace_with_comment_id"}]
+              "raw": "{{domain}}/{{baseapi}}/comments/toggle-like/:commentId",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "comments",
+                "toggle-like",
+                ":commentId"
+              ],
+              "variable": [
+                {
+                  "key": "commentId",
+                  "value": "id"
+                }
+              ]
             }
           }
         },
         {
-          "name": "delete-comment",
+          "name": "delete-comment(User/Admin/Partner)",
           "request": {
             "method": "DELETE",
-            "header": [],
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{accessToken}}"
+              }
+            ],
             "url": {
-              "raw": "{{domain}}{{baseapi}}/comments/delete-comment/:commentId",
-              "host": ["{{domain}}"],
-              "path": ["{{baseapi}}", "comments", "delete-comment", ":commentId"],
-              "variable": [{"key": "commentId", "value": "replace_with_comment_id"}]
+              "raw": "{{domain}}/{{baseapi}}/comments/delete-comment/:commentId",
+              "host": [
+                "{{domain}}"
+              ],
+              "path": [
+                "{{baseapi}}",
+                "comments",
+                "delete-comment",
+                ":commentId"
+              ],
+              "variable": [
+                {
+                  "key": "commentId",
+                  "value": "id"
+                }
+              ]
             }
           }
         }
@@ -505,13 +964,11 @@
   "variable": [
     {
       "key": "domain",
-      "value": "http://localhost:5000",
-      "type": "string"
+      "value": "http://localhost:5000"
     },
     {
       "key": "baseapi",
-      "value": "/api/v1",
-      "type": "string"
+      "value": "api/v1"
     }
   ]
 }
