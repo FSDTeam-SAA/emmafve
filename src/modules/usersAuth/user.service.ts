@@ -12,6 +12,10 @@ export const userService = {
       role: roleParam,
       status: statusParam,
       search,
+      from,
+      to,
+      sort,
+      sortBy,
       page: pagebody,
       limit: limitbody,
     } = req.query;
@@ -56,8 +60,60 @@ export const userService = {
       ];
     }
 
+    if (from || to) {
+      const isValidDate = (date: any) => {
+        const parsedDate = new Date(date);
+        return !Number.isNaN(parsedDate.getTime());
+      };
+
+      if (from && !isValidDate(from)) {
+        throw new CustomError(400, "Invalid 'from' date. Format must be YYYY-MM-DD or ISO");
+      }
+
+      if (to && !isValidDate(to)) {
+        throw new CustomError(400, "Invalid 'to' date. Format must be YYYY-MM-DD or ISO");
+      }
+
+      if (from && to && new Date(from as string) > new Date(to as string)) {
+        throw new CustomError(400, "'from' date cannot be greater than 'to' date");
+      }
+
+      filter.createdAt = {};
+
+      if (from) {
+        const fromDate = new Date(from as string);
+        fromDate.setHours(0, 0, 0, 0);
+        filter.createdAt.$gte = fromDate;
+      }
+
+      if (to) {
+        const toDate = new Date(to as string);
+        toDate.setHours(23, 59, 59, 999);
+        filter.createdAt.$lte = toDate;
+      }
+    }
+
+    if (sort && sort !== "ascending" && sort !== "descending") {
+      throw new CustomError(400, "Invalid sort value. Must be 'ascending' or 'descending'");
+    }
+
+    const sortFields: Record<string, string> = {
+      name: "firstName",
+      email: "email",
+      date: "createdAt",
+      role: "role",
+      status: "status",
+      company: "company",
+    };
+    const sortByValue = typeof sortBy === "string" ? sortBy : "date";
+    const sortField = sortFields[sortByValue.toLowerCase()];
+    if (!sortField) {
+      throw new CustomError(400, `Invalid sortBy value. Must be one of: ${Object.keys(sortFields).join(", ")}`);
+    }
+    const sortOrder = sort === "ascending" ? 1 : -1;
+
     const [users, totalUsers] = await Promise.all([
-      userModel.find(filter).skip(skip).limit(limit).select("-password -passwordResetToken -passwordResetExpire -refreshToken -__v -createdAt -updatedAt -emailVerifiedAt -emailVerifiedOtp -verificationOtp -verificationOtpExpire -isDeleted -deletedAt -rememberMe"),
+      userModel.find(filter).sort({ [sortField]: sortOrder }).skip(skip).limit(limit).select("-password -passwordResetToken -passwordResetExpire -refreshToken -__v -createdAt -updatedAt -emailVerifiedAt -emailVerifiedOtp -verificationOtp -verificationOtpExpire -isDeleted -deletedAt -rememberMe"),
       userModel.countDocuments(filter),
     ]);
 

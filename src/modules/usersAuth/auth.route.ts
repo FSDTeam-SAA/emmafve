@@ -1,6 +1,7 @@
 import { Router } from "express";
 import {
   registration,
+  partnerRegistration,
   verifyAccount,
   login,
   logout,
@@ -16,6 +17,7 @@ import { validateRequest } from "../../middleware/validateRequest.middleware";
 import {
   forgetPasswordSchema,
   loginSchema,
+  registerPartnerSchema,
   registerUserSchema,
   resetPasswordSchema,
   verifyAccountSchema,
@@ -29,6 +31,12 @@ router.post(
   "/register-user",
   validateRequest(registerUserSchema),
   registration,
+);
+
+router.post(
+  "/register-partner",
+  validateRequest(registerPartnerSchema),
+  partnerRegistration,
 );
 
 router.post("/login", rateLimiter(1, 5), validateRequest(loginSchema), login);

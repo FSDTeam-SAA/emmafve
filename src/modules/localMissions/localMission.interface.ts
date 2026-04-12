@@ -1,0 +1,50 @@
+import { Document, Types } from "mongoose";
+
+export enum LocalMissionStatus {
+  ACTIVE = "active",
+  INACTIVE = "inactive",
+}
+
+export enum LocalMissionParticipationStatus {
+  PENDING = "pending",
+  COMPLETED = "completed",
+}
+
+export interface ILocalMission extends Document {
+  partner: Types.ObjectId | string;
+  title: string;
+  description: string;
+  address: string;
+  duration: string;
+  points?: number;
+  photo?: {
+    public_id: string;
+    secure_url: string;
+  };
+  status: LocalMissionStatus;
+}
+
+export interface CreateLocalMissionPayload {
+  title: string;
+  description: string;
+  address: string;
+  duration: string;
+  points?: number;
+}
+
+export interface UpdateLocalMissionPayload {
+  title?: string;
+  description?: string;
+  address?: string;
+  duration?: string;
+  points?: number;
+  status?: LocalMissionStatus;
+}
+
+export interface ILocalMissionParticipation extends Document {
+  mission: Types.ObjectId | string;
+  user: Types.ObjectId | string;
+  status: LocalMissionParticipationStatus;
+  pointsAwarded: number;
+  completedAt?: Date;
+}

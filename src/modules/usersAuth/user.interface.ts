@@ -35,6 +35,7 @@ export interface IUser extends Document {
   selfIntroduction: string;
   address: string;
   company: string;
+  pointsBalance: number;
   isVerified: boolean;
   verificationOtp: string | null;
   verificationOtpExpire: Date | null;

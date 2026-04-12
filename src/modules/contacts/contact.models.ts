@@ -1,0 +1,67 @@
+import mongoose, { Model, Schema } from "mongoose";
+import { ContactStatus, ContactType, IContact } from "./contact.interface";
+
+const contactSchema = new Schema<IContact>(
+  {
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+    type: {
+      type: String,
+      enum: Object.values(ContactType),
+      required: true,
+    },
+    description: {
+      type: String,
+      trim: true,
+    },
+    address: {
+      type: String,
+      trim: true,
+    },
+    phone: {
+      type: String,
+      trim: true,
+    },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
+    website: {
+      type: String,
+      trim: true,
+    },
+    city: {
+      type: String,
+      trim: true,
+    },
+    country: {
+      type: String,
+      trim: true,
+    },
+    photo: {
+      public_id: String,
+      secure_url: String,
+      _id: false,
+    },
+    status: {
+      type: String,
+      enum: Object.values(ContactStatus),
+      default: ContactStatus.ACTIVE,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+contactSchema.index({ type: 1, status: 1, name: 1 });
+contactSchema.index({ name: "text", description: "text", address: "text" });
+
+export const contactModel: Model<IContact> = mongoose.model<IContact>(
+  "Contact",
+  contactSchema,
+);

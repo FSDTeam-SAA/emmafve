@@ -83,6 +83,7 @@ export const reportService = {
       from, // date range start
       to, // date range end
       species,
+      sortBy,
       sort = "ascending", // default ascending
     } = req.query;
 
@@ -154,11 +155,22 @@ export const reportService = {
       }
     }
 
-    // Sort validation
     if (sort && sort !== "ascending" && sort !== "descending") {
       throw new CustomError(400, "Invalid sort value. Must be 'ascending' or 'descending'");
     }
 
+    const sortFields: Record<string, string> = {
+      date: "createdAt",
+      name: "animalName",
+      title: "title",
+      status: "status",
+      species: "species",
+    };
+    const sortByValue = typeof sortBy === "string" ? sortBy : "date";
+    const sortField = sortFields[sortByValue.toLowerCase()];
+    if (!sortField) {
+      throw new CustomError(400, `Invalid sortBy value. Must be one of: ${Object.keys(sortFields).join(", ")}`);
+    }
     const sortOrder = sort === "descending" ? -1 : 1;
 
     // Query with pagination and performance optimization
@@ -166,7 +178,7 @@ export const reportService = {
       reportModel.find(filter)
         .skip(skip)
         .limit(perPage)
-        .sort({ createdAt: sortOrder })
+        .sort({ [sortField]: sortOrder })
         .populate("author", "firstName lastName email profileImage")
         .populate({
           path: "comments",
