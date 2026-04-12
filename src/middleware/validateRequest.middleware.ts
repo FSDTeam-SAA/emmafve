@@ -26,10 +26,7 @@ export const validateRequest = (schema: ZodSchema): RequestHandler => {
         );
       }
 
-      // Validate body ONLY if it exists
-      if (hasBody) {
-        await schema.parseAsync(req.body);
-      }
+      await schema.parseAsync(req.body ?? {});
 
       next();
     } catch (err: any) {

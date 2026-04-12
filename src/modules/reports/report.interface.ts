@@ -38,6 +38,7 @@ export interface ILocation {
 }
 
 export interface IReport extends Document {
+  animalName: string;
   title: string;
   author: Types.ObjectId | string;
   species: AnimalSpecies;
@@ -63,7 +64,8 @@ export interface IReport extends Document {
 }
 
 export interface CreateReportPayload {
-  title: string;
+  animalName: string;
+  title?: string;
   species: string;
   breed: string;
   gender: string;

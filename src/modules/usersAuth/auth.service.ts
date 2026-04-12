@@ -2,7 +2,7 @@ import { userModel } from "./user.models";
 import jwt from "jsonwebtoken";
 import CustomError from "../../helpers/CustomError";
 import config from "../../config";
-import { IUser } from "./user.interface";
+import { IUser, status } from "./user.interface";
 import { emailValidator } from "../../helpers/emailValidator";
 import { generateOTP } from "../../utils/otpGenerator";
 import { mailer } from "../../helpers/nodeMailer";
@@ -31,10 +31,23 @@ export const authService = {
 
     const adminEmails = config.adminEmails;
     const role = adminEmails.includes(payload.email!) ? "admin" : "user";
+    const otp = generateOTP();
     const user = await userModel.create({
       ...payload,
       role: role,
+      verificationOtp: otp,
+      verificationOtpExpire: new Date(Date.now() + 2 * 60 * 1000),
     });
+
+    try {
+      await mailer({
+        email: user.email,
+        subject: "Verify your account - OTP",
+        template: otpEmailTemplate(user.firstName, otp),
+      });
+    } catch (error) {
+      console.error("[Auth] Failed to send verification email:", error);
+    }
 
     return user;
   },
@@ -46,6 +59,9 @@ export const authService = {
 
     if (!user.verificationOtp) throw new CustomError(400, "OTP not found");
     if (user.verificationOtp !== otp) throw new CustomError(400, "Invalid OTP");
+    if (!user.verificationOtpExpire || user.verificationOtpExpire < new Date()) {
+      throw new CustomError(400, "OTP has been expired");
+    }
 
     user.isVerified = true;
     user.verificationOtp = null;
@@ -58,6 +74,12 @@ export const authService = {
   async login(email: string, password: string, rememberMe: boolean = false) {
     const user = await userModel.findOne({ email: email }).select("+password");
     if (!user) throw new CustomError(400, "user not found");
+    if (user.status !== status.ACTIVE) {
+      throw new CustomError(403, `Your account is ${user.status}. Access denied.`);
+    }
+    if (!user.password) {
+      throw new CustomError(400, "Password login is not available for this account");
+    }
 
     const isPasswordMatch = await user.comparePassword(password);
     if (!isPasswordMatch) throw new CustomError(400, "incorrect password");
@@ -165,7 +187,7 @@ export const authService = {
       throw new CustomError(401, "Invalid refresh token");
     }
     const accessToken = user.createAccessToken();
-    return accessToken;
+    return { accessToken, rememberMe: user.rememberMe };
   },
 
   //google login callback logic
@@ -193,11 +215,13 @@ export const authService = {
         lastName: payload.family_name || "User",
         email: payload.email,
         isVerified: true, // Google emails are already verified
-        password: Math.random().toString(36).slice(-10), // Random password for social users
         address: "Social Login", // Default for social
         company: "Social Login", // Default for social
-        phone: "Social Login", // Default for social
+        phone: `google-${payload.sub}`, // Unique placeholder for social users
       });
+    }
+    if (user.status !== status.ACTIVE) {
+      throw new CustomError(403, `Your account is ${user.status}. Access denied.`);
     }
 
     const accessToken = user.createAccessToken();
@@ -227,11 +251,13 @@ export const authService = {
         lastName: lastName || "User",
         email: email,
         isVerified: true,
-        password: Math.random().toString(36).slice(-10),
         address: "Social Login",
         company: "Social Login",
-        phone: "Social Login",
+        phone: `apple-${appleId}`,
       });
+    }
+    if (user.status !== status.ACTIVE) {
+      throw new CustomError(403, `Your account is ${user.status}. Access denied.`);
     }
 
     const accessToken = user.createAccessToken();

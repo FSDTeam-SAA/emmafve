@@ -11,9 +11,13 @@ export {
 
 const reportSchema = new Schema<IReport>(
   {
-    title: {
+    animalName: {
       type: String,
       required: true,
+      trim: true,
+    },
+    title: {
+      type: String,
       trim: true,
     },
     author: {

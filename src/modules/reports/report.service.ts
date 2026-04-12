@@ -1,8 +1,20 @@
+import mongoose from "mongoose";
 import { Request } from "express";
 import { reportModel } from "./report.models";
 import CustomError from "../../helpers/CustomError";
 import { uploadCloudinary, deleteCloudinary } from "../../helpers/cloudinary";
 import { CreateReportPayload, UpdateReportPayload } from "./report.interface";
+import { commentService } from "../comments/comment.service";
+
+const deleteCloudinaryQuietly = async (publicId?: string): Promise<void> => {
+  if (!publicId) return;
+
+  try {
+    await deleteCloudinary(publicId);
+  } catch (error) {
+    console.error(`[Cloudinary] Failed to delete ${publicId}:`, error);
+  }
+};
 
 export const reportService = {
   // Create a new report
@@ -39,12 +51,18 @@ export const reportService = {
       }
     }
 
-    const payload = {
+    const payload: any = {
       ...body,
       location: locationData,
       images,
       author: authorId,
     };
+
+    // Auto-generate title if missing
+    if (!payload.title && payload.animalName) {
+      const statusLabel = payload.status.charAt(0).toUpperCase() + payload.status.slice(1);
+      payload.title = `${statusLabel} ${payload.species} - ${payload.animalName}`;
+    }
 
     if (payload.isPhoneVisible === 'true') payload.isPhoneVisible = true;
     if (payload.isPhoneVisible === 'false') payload.isPhoneVisible = false;
@@ -78,6 +96,7 @@ export const reportService = {
     if (search) {
       const searchRegex = new RegExp(search as string, "i");
       filter.$or = [
+        { animalName: searchRegex },
         { title: searchRegex },
         { breed: searchRegex },
         { description: searchRegex },
@@ -229,17 +248,18 @@ export const reportService = {
     const multerFiles = req.files as { [fieldname: string]: Express.Multer.File[] };
     const files = multerFiles?.["images"] || [];
     let images = report.images;
+    const oldPublicIdsToDelete: string[] = [];
+    const newPublicIdsToDeleteOnFailure: string[] = [];
 
     if (files && files.length > 0) {
       if (files.length > 3) {
         throw new CustomError(400, "Maximum of 3 images allowed");
       }
 
-      // Delete old images
       if (images && images.length > 0) {
         for (const img of images) {
           if (img.public_id) {
-            await deleteCloudinary(img.public_id);
+            oldPublicIdsToDelete.push(img.public_id);
           }
         }
       }
@@ -249,52 +269,99 @@ export const reportService = {
         const result = await uploadCloudinary(file.path);
         if (result) {
           images.push(result);
+          newPublicIdsToDeleteOnFailure.push(result.public_id);
         }
       }
     }
 
-    const payload = {
+    const payload: any = {
       ...body,
       location: locationData,
       images,
     };
+
+    // Auto-generate title if missing or animalName changed and title is empty
+    if (!payload.title && (payload.animalName || report.animalName)) {
+      const animalName = payload.animalName || report.animalName;
+      const species = payload.species || report.species;
+      const status = payload.status || report.status;
+      const statusLabel = status.charAt(0).toUpperCase() + status.slice(1);
+      payload.title = `${statusLabel} ${species} - ${animalName}`;
+    }
 
     if (payload.isPhoneVisible === 'true') payload.isPhoneVisible = true;
     if (payload.isPhoneVisible === 'false') payload.isPhoneVisible = false;
     if (payload.isEmailVisible === 'true') payload.isEmailVisible = true;
     if (payload.isEmailVisible === 'false') payload.isEmailVisible = false;
 
-    const updatedReport = await reportModel.findByIdAndUpdate(
-      reportId,
-      payload,
-      { returnDocument: 'after', runValidators: true }
-    );
+    let updatedReport;
+    try {
+      updatedReport = await reportModel.findByIdAndUpdate(
+        reportId,
+        payload,
+        { returnDocument: 'after', runValidators: true }
+      );
+    } catch (error) {
+      await Promise.all(newPublicIdsToDeleteOnFailure.map(deleteCloudinaryQuietly));
+      throw error;
+    }
+
+    await Promise.all(oldPublicIdsToDelete.map(deleteCloudinaryQuietly));
 
     return updatedReport;
   },
 
   // Delete a report
   async deleteReport(authorId: string, reportId: string) {
-    const report = await reportModel.findById(reportId);
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    const publicIdsToDelete: string[] = [];
+    try {
+      const report = await reportModel.findById(reportId).session(session);
 
-    if (!report) {
-      throw new CustomError(404, "Report not found");
-    }
+      if (!report) {
+        throw new CustomError(404, "Report not found");
+      }
 
-    // Verify ownership
-    if (report.author.toString() !== authorId) {
-      throw new CustomError(403, "You are not authorized to delete this report");
-    }
+      // Verify ownership
+      if (report.author.toString() !== authorId) {
+        throw new CustomError(403, "You are not authorized to delete this report");
+      }
 
-    await reportModel.findByIdAndDelete(reportId);
-    if (report.images && report.images.length > 0) {
-      for (const img of report.images) {
-        if (img.public_id) {
-          await deleteCloudinary(img.public_id);
+      // 1. Delete associated comments (Cascade)
+      publicIdsToDelete.push(
+        ...(await commentService.deleteAllCommentsByReport(reportId, session)),
+      );
+
+      // 2. Delete the report document
+      await reportModel.findByIdAndDelete(reportId).session(session);
+
+      // 3. Delete associated images from Cloudinary
+      if (report.images && report.images.length > 0) {
+        for (const img of report.images) {
+          if (img.public_id) {
+            publicIdsToDelete.push(img.public_id);
+          }
         }
       }
+
+      await session.commitTransaction();
+      await Promise.all(
+        publicIdsToDelete.map(async (publicId) => {
+          try {
+            await deleteCloudinary(publicId);
+          } catch (error) {
+            console.error(`[Cloudinary] Failed to delete ${publicId}:`, error);
+          }
+        }),
+      );
+      return true;
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      await session.endSession();
     }
-    return true;
   },
 
   // Add an image to a report

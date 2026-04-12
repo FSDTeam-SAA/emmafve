@@ -1,6 +1,7 @@
 import { Server, Socket } from 'socket.io';
 import http from 'http';
 import CustomError from '../helpers/CustomError';
+import config from '../config';
 
 let io: Server | null = null;
 
@@ -11,8 +12,15 @@ interface JoinChatPayload {
 export const initSocket = (httpServer: http.Server): Server => {
   if (io) return io;
 
+  const allowedOrigins = [
+    config.frontendUrl,
+    'http://localhost:3000',
+    'http://localhost:3001',
+    'http://localhost:5173',
+  ].filter(Boolean);
+
   io = new Server(httpServer, {
-    cors: { origin: '*', methods: ['GET', 'POST'] },
+    cors: { origin: allowedOrigins, methods: ['GET', 'POST'], credentials: true },
   });
 
   io.on('connection', (socket: Socket) => {

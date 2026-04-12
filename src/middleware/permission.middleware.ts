@@ -14,9 +14,9 @@ interface AuthUser {
   role: Role;
 }
 
-interface CustomRequest extends Request {
-  user?: AuthUser | undefined;
-}
+type CustomRequest = Request & {
+  user?: AuthUser;
+};
 
 export const permission =
   (allowedRoles: Role[] = []) =>
