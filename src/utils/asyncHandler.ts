@@ -7,16 +7,31 @@ type AsyncController = (
   next: NextFunction
 ) => Promise<any>;
 
+const removeLocalFile = (file?: Express.Multer.File): void => {
+  if (file?.path && fs.existsSync(file.path)) {
+    fs.unlinkSync(file.path);
+  }
+};
+
+const cleanupUploadedFiles = (req: Request): void => {
+  removeLocalFile(req.file);
+
+  if (Array.isArray(req.files)) {
+    req.files.forEach(removeLocalFile);
+    return;
+  }
+
+  if (req.files && typeof req.files === "object") {
+    Object.values(req.files).flat().forEach(removeLocalFile);
+  }
+};
+
 export const asyncHandler = (fn: AsyncController) => {
   return async (req: Request, res: Response, next: NextFunction) => {
     try {
       await fn(req, res, next);
     } catch (error) {
-
-      //if error then revove the image from local folder
-      if (req.file?.path) {
-        fs.unlinkSync(req.file.path);
-      }
+      cleanupUploadedFiles(req);
 
       next(error);
     }

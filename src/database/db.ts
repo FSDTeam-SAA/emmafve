@@ -2,12 +2,6 @@ import mongoose from "mongoose";
 import chalk from "chalk";
 import dotenv from "dotenv";
 import config from "../config";
-import {
-  startBalanceResetCron,
-  startPingServerCron,
-} from "./balance-reset.cron";
-import { startNotificationCron } from "./notification.cron";
-
 dotenv.config();
 
 export const connectDatabase = async (): Promise<void> => {

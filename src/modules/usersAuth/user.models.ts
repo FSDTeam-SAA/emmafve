@@ -46,7 +46,7 @@ const userSchema = new Schema<IUser>(
 
     password: {
       type: String,
-      required: true,
+      required: false,
       select: false,
     },
     role: {
@@ -126,7 +126,7 @@ userSchema.pre<IUser>("save", async function () {
 
 // encrypt password in pre middleware
 userSchema.pre<IUser & Document>("save", async function () {
-  if (!this.isModified("password")) return;
+  if (!this.isModified("password") || !this.password) return;
 
   const salt = await bcrypt.genSalt(10);
   this.password = await bcrypt.hash(this.password, salt);
@@ -136,6 +136,7 @@ userSchema.pre<IUser & Document>("save", async function () {
 userSchema.methods.comparePassword = async function (
   password: string,
 ): Promise<boolean> {
+  if (!this.password) return false;
   return await bcrypt.compare(password, this.password);
 };
 
@@ -170,8 +171,8 @@ userSchema.methods.createAccessToken = function () {
     config.jwt.accessTokenSecret as string,
     {
       expiresIn: this.rememberMe
-        ? "1d"
-        : (config.jwt.accessTokenExpires as any),
+        ? "3d"
+        : "10m",
     },
   );
 };

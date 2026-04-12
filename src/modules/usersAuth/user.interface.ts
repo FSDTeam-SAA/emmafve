@@ -24,7 +24,7 @@ export interface IUser extends Document {
   lastName: string;
   email: string;
   phone: string;
-  password: string;
+  password?: string;
   role: string;
   profession: string;
   profileImage: {

@@ -1,6 +1,6 @@
 import express, { NextFunction, Request, Response } from "express";
 import http from "http";
-import { initSocket } from "./socket/server";
+// import { initSocket } from "./socket/server";
 import routes from "./routes/index.api";
 import { globalErrorHandler } from "./helpers/globalErrorHandler";
 import { serverRunningTemplate } from "./tempaletes/serverlive.template";
@@ -12,6 +12,12 @@ import { notFound } from "./middleware/notFound";
 
 const app = express();
 const server = http.createServer(app);
+const allowedOrigins = [
+  config.frontendUrl,
+  "http://localhost:3000",
+  "http://localhost:3001",
+  "http://localhost:5173",
+].filter(Boolean);
 
 if (config.env === "development") {
   app.use(morgan("dev"));
@@ -21,12 +27,12 @@ if (config.env === "development") {
 
 app.use(
   cors({
-    origin: [
-      "*",
-      "http://localhost:3000",
-      "http://localhost:3001",
-      "http://localhost:5173",
-    ],
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      }
+      return callback(null, false);
+    },
     credentials: true,
   }),
 );
@@ -51,6 +57,6 @@ app.use(notFound);
 //global error handler
 app.use(globalErrorHandler);
 
-// Socket.IO setup
-const io = initSocket(server);
-export { io, server };
+// Socket.IO setup is disabled for now.
+// const io = initSocket(server);
+export { server };

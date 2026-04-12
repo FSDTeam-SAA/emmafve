@@ -1,9 +1,26 @@
-import { Request, Response } from "express";
+import { CookieOptions, Request, Response } from "express";
 import { asyncHandler } from "../../utils/asyncHandler";
 import ApiResponse from "../../utils/apiResponse";
 import config from "../../config";
 import { authService } from "./auth.service";
 import CustomError from "../../helpers/CustomError";
+
+const ACCESS_TOKEN_MAX_AGE = {
+  DEFAULT: 1000 * 60 * 10,
+  REMEMBER_ME: 1000 * 60 * 60 * 24 * 3,
+} as const;
+
+const REFRESH_TOKEN_MAX_AGE = 1000 * 60 * 60 * 24 * 15;
+
+const cookieOptions = (maxAge?: number): CookieOptions => ({
+  httpOnly: true,
+  sameSite: config.env === "development" ? "lax" : "none",
+  secure: config.env !== "development",
+  ...(maxAge ? { maxAge } : {}),
+});
+
+const accessTokenMaxAge = (rememberMe?: boolean): number =>
+  rememberMe ? ACCESS_TOKEN_MAX_AGE.REMEMBER_ME : ACCESS_TOKEN_MAX_AGE.DEFAULT;
 
 //: Register user
 export const registration = asyncHandler(async (req, res) => {
@@ -33,21 +50,8 @@ export const login = asyncHandler(async (req, res) => {
     req?.body?.rememberMe
   );
 
-  if (config.env === "development") {
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      sameSite: "none",
-      secure: true,
-      maxAge: 1000 * 60 * 60 * 24 * 15 // 15 days
-    });
-
-    res.cookie("accessToken", accessToken, {
-      httpOnly: true,
-      sameSite: "none",
-      secure: true,
-      maxAge: 1000 * 60 * 30 // 30 minutes
-    });
-  }
+  res.cookie("refreshToken", refreshToken, cookieOptions(REFRESH_TOKEN_MAX_AGE));
+  res.cookie("accessToken", accessToken, cookieOptions(accessTokenMaxAge(req?.body?.rememberMe)));
 
   ApiResponse.sendSuccess(res, 200, "Logged in", {
     _id: user._id,
@@ -112,12 +116,9 @@ export const generateAccessToken = asyncHandler(async (req, res) => {
     throw new CustomError(401, "Refresh token not found");
   }
 
-  const accessToken = await authService.generateAccessToken(refreshToken);
+  const { accessToken, rememberMe } = await authService.generateAccessToken(refreshToken);
 
-  res.cookie("accessToken", accessToken, {
-    httpOnly: true,
-    sameSite: "none",
-  });
+  res.cookie("accessToken", accessToken, cookieOptions(accessTokenMaxAge(rememberMe)));
 
   ApiResponse.sendSuccess(res, 201, "New access token generated", {
     accessToken
@@ -131,12 +132,8 @@ export const googleLogin = asyncHandler(async (req, res) => {
 
   const { user, accessToken, refreshToken } = await authService.googleLogin(idToken);
 
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    sameSite: "none",
-    secure: true,
-    maxAge: 1000 * 60 * 60 * 24 * 15
-  });
+  res.cookie("refreshToken", refreshToken, cookieOptions(REFRESH_TOKEN_MAX_AGE));
+  res.cookie("accessToken", accessToken, cookieOptions(accessTokenMaxAge(user.rememberMe)));
 
   ApiResponse.sendSuccess(res, 200, "Logged in with Google", {
     _id: user._id,
@@ -156,12 +153,8 @@ export const appleLogin = asyncHandler(async (req, res) => {
 
   const { user, accessToken, refreshToken } = await authService.appleLogin(idToken, firstName, lastName);
 
-  res.cookie("refreshToken", refreshToken, {
-    httpOnly: true,
-    sameSite: "none",
-    secure: true,
-    maxAge: 1000 * 60 * 60 * 24 * 15
-  });
+  res.cookie("refreshToken", refreshToken, cookieOptions(REFRESH_TOKEN_MAX_AGE));
+  res.cookie("accessToken", accessToken, cookieOptions(accessTokenMaxAge(user.rememberMe)));
 
   ApiResponse.sendSuccess(res, 200, "Logged in with Apple", {
     _id: user._id,

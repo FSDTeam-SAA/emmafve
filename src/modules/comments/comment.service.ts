@@ -6,11 +6,24 @@ import { uploadCloudinary, deleteCloudinary } from "../../helpers/cloudinary";
 import { IComment } from "./comment.interface";
 import { reportModel } from "../reports/report.models";
 
+const getCommentReportId = (comment: IComment): string => comment.report.toString();
+
+const deleteCloudinaryQuietly = async (publicId?: string): Promise<void> => {
+  if (!publicId) return;
+
+  try {
+    await deleteCloudinary(publicId);
+  } catch (error) {
+    console.error(`[Cloudinary] Failed to delete ${publicId}:`, error);
+  }
+};
+
 export const commentService = {
   // Create a new comment or reply
   async createComment(req: Request) {
     const session = await mongoose.startSession();
     session.startTransaction();
+    const publicIdsToDelete: string[] = [];
     try {
       const authorId = req.user?._id;
       const { content, reportId, parentId } = req.body;
@@ -39,8 +52,11 @@ export const commentService = {
 
       if (parentId) {
         const parentComment = await commentModel.findById(parentId).session(session);
-        if (!parentComment) {
+        if (!parentComment || parentComment.isDeleted) {
           throw new CustomError(404, "Parent comment not found");
+        }
+        if (getCommentReportId(parentComment) !== reportId) {
+          throw new CustomError(400, "Parent comment does not belong to this report");
         }
         commentData.parent = parentId;
       }
@@ -83,7 +99,7 @@ export const commentService = {
 
       // Verify parent comment exists
       const parentComment = await commentModel.findById(parentId).session(session);
-      if (!parentComment) {
+      if (!parentComment || parentComment.isDeleted) {
         throw new CustomError(404, "Parent comment not found");
       }
 
@@ -91,6 +107,9 @@ export const commentService = {
       const report = await reportModel.findById(reportId).session(session);
       if (!report) {
         throw new CustomError(404, "Report not found");
+      }
+      if (getCommentReportId(parentComment) !== reportId) {
+        throw new CustomError(400, "Parent comment does not belong to this report");
       }
 
       let imageData = undefined;
@@ -141,6 +160,8 @@ export const commentService = {
     const { replyId } = req.params;
     const { content } = req.body;
     const image = req.file;
+    let oldPublicIdToDelete: string | undefined;
+    let newPublicIdToDeleteOnFailure: string | undefined;
 
     const reply = await commentModel.findById(replyId);
     if (!reply || reply.isDeleted) {
@@ -157,16 +178,22 @@ export const commentService = {
     }
 
     if (image) {
-      if (reply.image?.public_id) {
-        await deleteCloudinary(reply.image.public_id);
-      }
+      oldPublicIdToDelete = reply.image?.public_id;
       const result = await uploadCloudinary(image.path);
       if (result) {
         reply.image = result;
+        newPublicIdToDeleteOnFailure = result.public_id;
       }
     }
 
-    await reply.save();
+    try {
+      await reply.save();
+    } catch (error) {
+      await deleteCloudinaryQuietly(newPublicIdToDeleteOnFailure);
+      throw error;
+    }
+
+    await deleteCloudinaryQuietly(oldPublicIdToDelete);
     return reply;
   },
 
@@ -174,6 +201,7 @@ export const commentService = {
   async deleteReply(replyId: string, userId: string) {
     const session = await mongoose.startSession();
     session.startTransaction();
+    const publicIdsToDelete: string[] = [];
     try {
       const reply = await commentModel.findById(replyId).session(session);
       if (!reply || reply.isDeleted) {
@@ -189,7 +217,7 @@ export const commentService = {
       const childReplies = await commentModel.find({ parent: replyId }).session(session);
       for (const child of childReplies) {
         if (child.image?.public_id) {
-          await deleteCloudinary(child.image.public_id);
+          publicIdsToDelete.push(child.image.public_id);
         }
         await child.deleteOne({ session });
         
@@ -203,7 +231,7 @@ export const commentService = {
 
       // 2. Delete this reply's image from Cloudinary (Happens outside DB transaction, but safe enough)
       if (reply.image?.public_id) {
-        await deleteCloudinary(reply.image.public_id);
+        publicIdsToDelete.push(reply.image.public_id);
       }
 
       // 3. Delete this reply document
@@ -217,6 +245,7 @@ export const commentService = {
       );
 
       await session.commitTransaction();
+      await Promise.all(publicIdsToDelete.map(deleteCloudinaryQuietly));
       return true;
     } catch (error) {
       await session.abortTransaction();
@@ -264,7 +293,7 @@ export const commentService = {
       throw new CustomError(404, "Comment not found");
     }
 
-    const isLiked = comment.likes.includes(userId);
+    const isLiked = comment.likes.some(id => id.toString() === userId);
     if (isLiked) {
       comment.likes = comment.likes.filter(id => id.toString() !== userId);
     } else {
@@ -281,6 +310,8 @@ export const commentService = {
     const { commentId } = req.params;
     const { content } = req.body;
     const image = req.file;
+    let oldPublicIdToDelete: string | undefined;
+    let newPublicIdToDeleteOnFailure: string | undefined;
 
     const comment = await commentModel.findById(commentId);
     if (!comment || comment.isDeleted) {
@@ -296,18 +327,22 @@ export const commentService = {
     }
 
     if (image) {
-      // Delete previous image if exists
-      if (comment.image?.public_id) {
-        await deleteCloudinary(comment.image.public_id);
-      }
-
+      oldPublicIdToDelete = comment.image?.public_id;
       const result = await uploadCloudinary(image.path);
       if (result) {
         comment.image = result;
+        newPublicIdToDeleteOnFailure = result.public_id;
       }
     }
 
-    await comment.save();
+    try {
+      await comment.save();
+    } catch (error) {
+      await deleteCloudinaryQuietly(newPublicIdToDeleteOnFailure);
+      throw error;
+    }
+
+    await deleteCloudinaryQuietly(oldPublicIdToDelete);
     return comment;
   },
 
@@ -315,6 +350,7 @@ export const commentService = {
   async deleteComment(commentId: string, userId: string) {
     const session = await mongoose.startSession();
     session.startTransaction();
+    const publicIdsToDelete: string[] = [];
     try {
       const comment = await commentModel.findById(commentId).session(session);
       if (!comment || comment.isDeleted) {
@@ -330,7 +366,7 @@ export const commentService = {
       for (const reply of replies) {
         // Delete reply image from Cloudinary
         if (reply.image?.public_id) {
-          await deleteCloudinary(reply.image.public_id);
+          publicIdsToDelete.push(reply.image.public_id);
         }
         // Delete the reply document
         await reply.deleteOne({ session });
@@ -345,7 +381,7 @@ export const commentService = {
 
       // 2. Delete parent comment image
       if (comment.image?.public_id) {
-        await deleteCloudinary(comment.image.public_id);
+        publicIdsToDelete.push(comment.image.public_id);
       }
 
       // 3. Delete parent comment document
@@ -359,6 +395,7 @@ export const commentService = {
       );
 
       await session.commitTransaction();
+      await Promise.all(publicIdsToDelete.map(deleteCloudinaryQuietly));
       return true;
     } catch (error) {
       await session.abortTransaction();
@@ -371,13 +408,17 @@ export const commentService = {
   // Delete all comments for a report (internal use)
   async deleteAllCommentsByReport(reportId: string, session?: mongoose.ClientSession) {
     const comments = await commentModel.find({ report: reportId }).session(session || null);
-    for (const comment of comments) {
-      if (comment.image?.public_id) {
-        await deleteCloudinary(comment.image.public_id);
-      }
+    const publicIdsToDelete = comments
+      .map((comment) => comment.image?.public_id)
+      .filter((publicId): publicId is string => Boolean(publicId));
+
+    await commentModel.deleteMany(
+      { report: reportId },
+      session ? { session } : undefined,
+    );
+    if (!session) {
+      await Promise.all(publicIdsToDelete.map(deleteCloudinaryQuietly));
     }
-    await commentModel.deleteMany({ report: reportId }, { session });
-    return true;
+    return publicIdsToDelete;
   },
-};
 };
