@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { Request } from "express";
 import { reportModel } from "./report.models";
 import CustomError from "../../helpers/CustomError";
@@ -292,30 +293,43 @@ export const reportService = {
 
   // Delete a report
   async deleteReport(authorId: string, reportId: string) {
-    const report = await reportModel.findById(reportId);
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    try {
+      const report = await reportModel.findById(reportId).session(session);
 
-    if (!report) {
-      throw new CustomError(404, "Report not found");
-    }
+      if (!report) {
+        throw new CustomError(404, "Report not found");
+      }
 
-    // Verify ownership
-    if (report.author.toString() !== authorId) {
-      throw new CustomError(403, "You are not authorized to delete this report");
-    }
+      // Verify ownership
+      if (report.author.toString() !== authorId) {
+        throw new CustomError(403, "You are not authorized to delete this report");
+      }
 
-    await reportModel.findByIdAndDelete(reportId);
+      // 1. Delete associated comments (Cascade)
+      await commentService.deleteAllCommentsByReport(reportId, session);
 
-    // Delete associated comments
-    await commentService.deleteAllCommentsByReport(reportId);
+      // 2. Delete the report document
+      await reportModel.findByIdAndDelete(reportId).session(session);
 
-    if (report.images && report.images.length > 0) {
-      for (const img of report.images) {
-        if (img.public_id) {
-          await deleteCloudinary(img.public_id);
+      // 3. Delete associated images from Cloudinary
+      if (report.images && report.images.length > 0) {
+        for (const img of report.images) {
+          if (img.public_id) {
+            await deleteCloudinary(img.public_id);
+          }
         }
       }
+
+      await session.commitTransaction();
+      return true;
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      await session.endSession();
     }
-    return true;
   },
 
   // Add an image to a report
