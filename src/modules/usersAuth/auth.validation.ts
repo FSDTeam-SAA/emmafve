@@ -20,6 +20,13 @@ export const registerUserSchema = z
   })
   .strict();
 
+export const registerPartnerSchema = registerUserSchema
+  .omit({ role: true })
+  .extend({
+    company: z.string().min(1, "Company is required"),
+  })
+  .strict();
+
 export const verifyAccountSchema = z
   .object({
     email: z.string().email("Invalid email address"),

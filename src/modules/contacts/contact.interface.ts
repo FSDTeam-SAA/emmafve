@@ -1,0 +1,45 @@
+import { Document } from "mongoose";
+
+export enum ContactType {
+  SHELTER = "shelter",
+  VETERINARIAN = "veterinarian",
+  AUTHORITY = "authority",
+  PARTNER = "partner",
+}
+
+export enum ContactStatus {
+  ACTIVE = "active",
+  INACTIVE = "inactive",
+}
+
+export interface IContact extends Document {
+  name: string;
+  type: ContactType;
+  description?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  city?: string;
+  country?: string;
+  photo?: {
+    public_id: string;
+    secure_url: string;
+  };
+  status: ContactStatus;
+}
+
+export interface CreateContactPayload {
+  name: string;
+  type: ContactType;
+  description?: string;
+  address?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  city?: string;
+  country?: string;
+  status?: ContactStatus;
+}
+
+export interface UpdateContactPayload extends Partial<CreateContactPayload> {}

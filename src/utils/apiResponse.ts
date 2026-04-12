@@ -4,8 +4,8 @@ class ApiResponse<T = unknown> {
   message: string;
   statusCode: number;
   status: string;
-  data: T | null;
   meta?: any;
+  data: T | null;
 
   constructor(
     message: string,
@@ -16,8 +16,8 @@ class ApiResponse<T = unknown> {
     this.message = message;
     this.statusCode = statusCode;
     this.status = statusCode >= 200 && statusCode < 300 ? "ok" : "error";
-    this.data = data ?? null;
     this.meta = meta;
+    this.data = data ?? null;
   }
 
   static sendSuccess<T>(

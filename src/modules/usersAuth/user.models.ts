@@ -34,6 +34,11 @@ const userSchema = new Schema<IUser>(
       type: String,
       required: true,
     },
+    pointsBalance: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
     selfIntroduction: {
       type: String,
       trim: true,
@@ -132,6 +137,15 @@ userSchema.pre<IUser & Document>("save", async function () {
   this.password = await bcrypt.hash(this.password, salt);
 });
 
+userSchema.index(
+  { role: 1, company: 1 },
+  {
+    unique: true,
+    partialFilterExpression: { role: role.PARTNERS },
+    collation: { locale: "en", strength: 2 },
+  },
+);
+
 // compare password
 userSchema.methods.comparePassword = async function (
   password: string,
@@ -170,9 +184,13 @@ userSchema.methods.createAccessToken = function () {
     { userId: this._id, email: this.email },
     config.jwt.accessTokenSecret as string,
     {
-      expiresIn: this.rememberMe
-        ? "3d"
-        : "10m",
+
+      expiresIn:
+        config.env === "development"
+          ? "1d"
+          : this.rememberMe
+            ? "3d"
+            : "10m",
     },
   );
 };

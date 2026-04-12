@@ -2,7 +2,7 @@ import { userModel } from "./user.models";
 import jwt from "jsonwebtoken";
 import CustomError from "../../helpers/CustomError";
 import config from "../../config";
-import { IUser, status } from "./user.interface";
+import { IUser, role, status } from "./user.interface";
 import { emailValidator } from "../../helpers/emailValidator";
 import { generateOTP } from "../../utils/otpGenerator";
 import { mailer } from "../../helpers/nodeMailer";
@@ -47,6 +47,48 @@ export const authService = {
       });
     } catch (error) {
       console.error("[Auth] Failed to send verification email:", error);
+    }
+
+    return user;
+  },
+
+  //register partner
+  async registerPartner(payload: Partial<IUser>) {
+    if (!payload.company) {
+      throw new CustomError(400, "Company is required");
+    }
+
+    if (payload.email) {
+      emailValidator(payload.email);
+    }
+
+    const company = payload.company.trim();
+    const existingPartner = await userModel.findOne({
+      role: role.PARTNERS,
+      company: { $regex: `^${company.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" },
+    });
+
+    if (existingPartner) {
+      throw new CustomError(409, "A partner account already exists for this company");
+    }
+
+    const otp = generateOTP();
+    const user = await userModel.create({
+      ...payload,
+      company,
+      role: role.PARTNERS,
+      verificationOtp: otp,
+      verificationOtpExpire: new Date(Date.now() + 2 * 60 * 1000),
+    });
+
+    try {
+      await mailer({
+        email: user.email,
+        subject: "Verify your partner account - OTP",
+        template: otpEmailTemplate(user.firstName, otp),
+      });
+    } catch (error) {
+      console.error("[Auth] Failed to send partner verification email:", error);
     }
 
     return user;

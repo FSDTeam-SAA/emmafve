@@ -32,6 +32,18 @@ export const registration = asyncHandler(async (req, res) => {
   });
 });
 
+//: Register partner
+export const partnerRegistration = asyncHandler(async (req, res) => {
+  const user = await authService.registerPartner(req.body);
+  ApiResponse.sendSuccess(res, 201, "Partner registered successfully", {
+    email: user.email,
+    firstName: user.firstName,
+    lastName: user.lastName,
+    company: user.company,
+    role: user.role,
+  });
+});
+
 //: Verify account by otp sent to email
 export const verifyAccount = asyncHandler(async (req, res) => {
   const user = await authService.verifyAccount(req.body.email, req.body.otp);
