@@ -1,6 +1,6 @@
 import express, { NextFunction, Request, Response } from "express";
 import http from "http";
-// import { initSocket } from "./socket/server";
+import { initSocket } from "./socket/server";
 import routes from "./routes/index.api";
 import { globalErrorHandler } from "./helpers/globalErrorHandler";
 import { serverRunningTemplate } from "./tempaletes/serverlive.template";
@@ -47,7 +47,6 @@ app.get("/api/v1/ping", (req: Request, res: Response) => {
 app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-// app.use(passport.initialize())
 
 app.use("/api/v1", routes);
 
@@ -57,6 +56,6 @@ app.use(notFound);
 //global error handler
 app.use(globalErrorHandler);
 
-// Socket.IO setup is disabled for now.
-// const io = initSocket(server);
+// Socket.IO setup
+const io = initSocket(server);
 export { server };

@@ -5,6 +5,8 @@ import CustomError from "../../helpers/CustomError";
 import { uploadCloudinary, deleteCloudinary } from "../../helpers/cloudinary";
 import { CreateReportPayload, UpdateReportPayload } from "./report.interface";
 import { commentService } from "../comments/comment.service";
+import { notificationService } from "../notifications/notification.service";
+import { NotificationType } from "../notifications/notification.interface";
 
 const deleteCloudinaryQuietly = async (publicId?: string): Promise<void> => {
   if (!publicId) return;
@@ -70,6 +72,21 @@ export const reportService = {
     if (payload.isEmailVisible === 'false') payload.isEmailVisible = false;
 
     const newReport = await reportModel.create(payload);
+
+    // Fire & Forget Notification
+    const baseTitle = "New Animal Report Nearby!";
+    const baseDesc = `A new report "${newReport.title}" was just created near you.`;
+    
+    if (newReport.location && newReport.location.coordinates && newReport.location.coordinates.length >= 2) {
+      const lng = newReport.location.coordinates[0] as number;
+      const lat = newReport.location.coordinates[1] as number;
+      notificationService.notifyUsersNearby(baseTitle, baseDesc, NotificationType.NEW_REPORT, lat, lng, 10)
+        .catch((err) => console.error("Notification Error:", err));
+    } else {
+      notificationService.notifyUsersNearby(baseTitle, baseDesc, NotificationType.NEW_REPORT)
+        .catch((err) => console.error("Notification Error:", err));
+    }
+
     return newReport;
   },
 
