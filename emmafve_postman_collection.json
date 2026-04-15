@@ -605,7 +605,7 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{domain}}{{baseapi}}/reports/get-all-reports?page=1&limit=10&search=Buddy&status=all&sortBy=date&sort=descending&from=2026-04-01&to=2026-04-30",
+              "raw": "{{domain}}{{baseapi}}/reports/get-all-reports?page=1&limit=10&search=Buddy&status=all&sortBy=date&sort=descending&from=2026-04-01&to=2026-04-30&lat=48.8566&lng=2.3522&radius=5",
               "host": [
                 "{{domain}}"
               ],
@@ -615,38 +615,17 @@
                 "get-all-reports"
               ],
               "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "10"
-                },
-                {
-                  "key": "search",
-                  "value": "Buddy"
-                },
-                {
-                  "key": "status",
-                  "value": "all"
-                },
-                {
-                  "key": "sortBy",
-                  "value": "date"
-                },
-                {
-                  "key": "sort",
-                  "value": "descending"
-                },
-                {
-                  "key": "from",
-                  "value": "2026-04-01"
-                },
-                {
-                  "key": "to",
-                  "value": "2026-04-30"
-                }
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "search", "value": "Buddy" },
+                { "key": "status", "value": "all" },
+                { "key": "sortBy", "value": "date", "description": "Ignored when lat/lng are provided" },
+                { "key": "sort", "value": "descending", "description": "Ignored when lat/lng are provided" },
+                { "key": "from", "value": "2026-04-01" },
+                { "key": "to", "value": "2026-04-30" },
+                { "key": "lat", "value": "48.8566", "description": "Latitude of the center point (decimal degrees)", "disabled": true },
+                { "key": "lng", "value": "2.3522", "description": "Longitude of the center point (decimal degrees)", "disabled": true },
+                { "key": "radius", "value": "5", "description": "Search radius in km (default: 5). Only used when lat+lng are provided.", "disabled": true }
               ]
             }
           }
@@ -1199,7 +1178,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{domain}}{{baseapi}}/partner-ads/get-all-partner-ads?page=1&limit=10&status=active&search=Kokoon&company=Kokoon&sortBy=name&sort=ascending&from=2026-04-01&to=2026-04-30",
+              "raw": "{{domain}}{{baseapi}}/partner-ads/get-all-partner-ads?page=1&limit=10&status=active&search=Kokoon&company=Kokoon&sortBy=name&sort=ascending&from=2026-04-01&to=2026-04-30&lat=48.8566&lng=2.3522&radius=5",
               "host": [
                 "{{domain}}"
               ],
@@ -1209,42 +1188,18 @@
                 "get-all-partner-ads"
               ],
               "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "10"
-                },
-                {
-                  "key": "status",
-                  "value": "active"
-                },
-                {
-                  "key": "search",
-                  "value": "Kokoon"
-                },
-                {
-                  "key": "company",
-                  "value": "Kokoon"
-                },
-                {
-                  "key": "sortBy",
-                  "value": "name"
-                },
-                {
-                  "key": "sort",
-                  "value": "ascending"
-                },
-                {
-                  "key": "from",
-                  "value": "2026-04-01"
-                },
-                {
-                  "key": "to",
-                  "value": "2026-04-30"
-                }
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "status", "value": "active" },
+                { "key": "search", "value": "Kokoon" },
+                { "key": "company", "value": "Kokoon" },
+                { "key": "sortBy", "value": "name" },
+                { "key": "sort", "value": "ascending" },
+                { "key": "from", "value": "2026-04-01" },
+                { "key": "to", "value": "2026-04-30" },
+                { "key": "lat", "value": "48.8566", "description": "Latitude of the center point (decimal degrees)", "disabled": true },
+                { "key": "lng", "value": "2.3522", "description": "Longitude of the center point (decimal degrees)", "disabled": true },
+                { "key": "radius", "value": "5", "description": "Search radius in km (default: 5). Only used when lat+lng are provided.", "disabled": true }
               ]
             }
           }
@@ -1456,7 +1411,7 @@
             "method": "GET",
             "header": [],
             "url": {
-              "raw": "{{domain}}{{baseapi}}/local-missions/get-all-local-missions?page=1&limit=10&status=active&search=dog&company=Kokoon&sortBy=points&sort=descending&from=2026-04-01&to=2026-04-30",
+              "raw": "{{domain}}{{baseapi}}/local-missions/get-all-local-missions?page=1&limit=10&status=active&search=dog&company=Kokoon&sortBy=points&sort=descending&from=2026-04-01&to=2026-04-30&lat=48.8566&lng=2.3522&radius=5",
               "host": [
                 "{{domain}}"
               ],
@@ -1466,42 +1421,18 @@
                 "get-all-local-missions"
               ],
               "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "limit",
-                  "value": "10"
-                },
-                {
-                  "key": "status",
-                  "value": "active"
-                },
-                {
-                  "key": "search",
-                  "value": "dog"
-                },
-                {
-                  "key": "company",
-                  "value": "Kokoon"
-                },
-                {
-                  "key": "sortBy",
-                  "value": "points"
-                },
-                {
-                  "key": "sort",
-                  "value": "descending"
-                },
-                {
-                  "key": "from",
-                  "value": "2026-04-01"
-                },
-                {
-                  "key": "to",
-                  "value": "2026-04-30"
-                }
+                { "key": "page", "value": "1" },
+                { "key": "limit", "value": "10" },
+                { "key": "status", "value": "active" },
+                { "key": "search", "value": "dog" },
+                { "key": "company", "value": "Kokoon" },
+                { "key": "sortBy", "value": "points" },
+                { "key": "sort", "value": "descending" },
+                { "key": "from", "value": "2026-04-01" },
+                { "key": "to", "value": "2026-04-30" },
+                { "key": "lat", "value": "48.8566", "description": "Latitude of the center point (decimal degrees)", "disabled": true },
+                { "key": "lng", "value": "2.3522", "description": "Longitude of the center point (decimal degrees)", "disabled": true },
+                { "key": "radius", "value": "5", "description": "Search radius in km (default: 5). Only used when lat+lng are provided.", "disabled": true }
               ]
             }
           }

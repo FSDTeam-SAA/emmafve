@@ -81,6 +81,9 @@ export const partnerAdService = {
       sort,
       sortBy,
       status = PartnerAdStatus.ACTIVE,
+      lat,
+      lng,
+      radius, // in km, defaults to 5 km when lat/lng provided
     } = req.query;
 
     const { page, limit, skip } = paginationHelper(pagebody as string, limitbody as string);
@@ -88,6 +91,29 @@ export const partnerAdService = {
     const companyQuery = typeof company === "string" && company.trim() ? company.trim() : undefined;
 
     filter.type = PartnerAdType.COLLECTION_POINT;
+
+    // Radius / geospatial filter
+    const hasGeo = lat !== undefined && lng !== undefined;
+    if (hasGeo) {
+      const latNum = parseFloat(lat as string);
+      const lngNum = parseFloat(lng as string);
+      const radiusKm = radius !== undefined ? parseFloat(radius as string) : 5;
+
+      if (isNaN(latNum) || isNaN(lngNum)) {
+        throw new CustomError(400, "Invalid lat/lng values. Must be valid numbers.");
+      }
+      if (isNaN(radiusKm) || radiusKm <= 0) {
+        throw new CustomError(400, "Invalid radius value. Must be a positive number (km).");
+      }
+
+      // Convert km to radians for $centerSphere (Earth radius = 6378.1 km)
+      filter.location = {
+        $geoWithin: {
+          $centerSphere: [[lngNum, latNum], radiusKm / 6378.1],
+        },
+      };
+    }
+
     if (companyQuery) {
       const partners = await userModel
         .find({
@@ -141,6 +167,7 @@ export const partnerAdService = {
       }
     }
 
+    // $geoWithin is compatible with regular sort — always apply it
     if (sort && sort !== "ascending" && sort !== "descending") {
       throw new CustomError(400, "Invalid sort value. Must be 'ascending' or 'descending'");
     }
@@ -151,11 +178,11 @@ export const partnerAdService = {
       date: "createdAt",
     };
     const sortByValue = typeof sortBy === "string" ? sortBy : "date";
-    const sortField = sortFields[sortByValue.toLowerCase()];
+    const sortField = sortFields[sortByValue.toLowerCase()] ?? null;
     if (!sortField) {
       throw new CustomError(400, `Invalid sortBy value. Must be one of: ${Object.keys(sortFields).join(", ")}`);
     }
-    const sortOrder = sort === "ascending" ? 1 : -1;
+    const sortOrder: 1 | -1 = sort === "ascending" ? 1 : -1;
 
     const [ads, total] = await Promise.all([
       partnerAdModel

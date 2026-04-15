@@ -9,12 +9,18 @@ export enum PartnerAdStatus {
   INACTIVE = "inactive",
 }
 
+export interface IGeoPoint {
+  type: "Point";
+  coordinates: [number, number]; // [longitude, latitude]
+}
+
 export interface IPartnerAd extends Document {
   partner: Types.ObjectId | string;
   type: PartnerAdType;
   title: string;
   description: string;
   address: string;
+  location?: IGeoPoint;
   photo?: {
     public_id: string;
     secure_url: string;
@@ -26,11 +32,13 @@ export interface CreatePartnerAdPayload {
   title: string;
   description: string;
   address: string;
+  location?: IGeoPoint;
 }
 
 export interface UpdatePartnerAdPayload {
   title?: string;
   description?: string;
   address?: string;
+  location?: IGeoPoint;
   status?: PartnerAdStatus;
 }
