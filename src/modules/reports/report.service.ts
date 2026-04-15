@@ -85,6 +85,9 @@ export const reportService = {
       species,
       sortBy,
       sort = "ascending", // default ascending
+      lat,
+      lng,
+      radius, // in km, defaults to 5 km when lat/lng are provided
     } = req.query;
 
     const skip = (Number(page) - 1) * Number(limit);
@@ -92,6 +95,28 @@ export const reportService = {
 
     // Build filter object
     const filter: any = {};
+
+    // Radius / geospatial filter
+    const hasGeo = lat !== undefined && lng !== undefined;
+    if (hasGeo) {
+      const latNum = parseFloat(lat as string);
+      const lngNum = parseFloat(lng as string);
+      const radiusKm = radius !== undefined ? parseFloat(radius as string) : 5;
+
+      if (isNaN(latNum) || isNaN(lngNum)) {
+        throw new CustomError(400, "Invalid lat/lng values. Must be valid numbers.");
+      }
+      if (isNaN(radiusKm) || radiusKm <= 0) {
+        throw new CustomError(400, "Invalid radius value. Must be a positive number (km).");
+      }
+
+      // Convert km to radians for $centerSphere (Earth radius = 6378.1 km)
+      filter.location = {
+        $geoWithin: {
+          $centerSphere: [[lngNum, latNum], radiusKm / 6378.1],
+        },
+      };
+    }
 
     // Search (title/breed/description)
     if (search) {
@@ -155,6 +180,7 @@ export const reportService = {
       }
     }
 
+    // $geoWithin is compatible with regular sort — always apply it
     if (sort && sort !== "ascending" && sort !== "descending") {
       throw new CustomError(400, "Invalid sort value. Must be 'ascending' or 'descending'");
     }
@@ -167,15 +193,16 @@ export const reportService = {
       species: "species",
     };
     const sortByValue = typeof sortBy === "string" ? sortBy : "date";
-    const sortField = sortFields[sortByValue.toLowerCase()];
+    const sortField = sortFields[sortByValue.toLowerCase()] ?? null;
     if (!sortField) {
       throw new CustomError(400, `Invalid sortBy value. Must be one of: ${Object.keys(sortFields).join(", ")}`);
     }
-    const sortOrder = sort === "descending" ? -1 : 1;
+    const sortOrder: 1 | -1 = sort === "descending" ? -1 : 1;
 
     // Query with pagination and performance optimization
     const [reports, total] = await Promise.all([
-      reportModel.find(filter)
+      reportModel
+        .find(filter)
         .skip(skip)
         .limit(perPage)
         .sort({ [sortField]: sortOrder })
@@ -187,7 +214,6 @@ export const reportService = {
             { path: "author", select: "firstName lastName profileImage" },
             { path: "replies", select: "-__v", populate: { path: "author", select: "firstName lastName profileImage" } },
             { path: "likes", select: "firstName lastName profileImage" }
-
           ]
         })
         .lean(),

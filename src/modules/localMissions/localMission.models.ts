@@ -23,6 +23,15 @@ const localMissionSchema = new Schema<ILocalMission>(
       required: true,
       trim: true,
     },
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+      },
+    },
     duration: {
       type: String,
       required: true,
@@ -51,6 +60,7 @@ const localMissionSchema = new Schema<ILocalMission>(
 
 localMissionSchema.index({ partner: 1, createdAt: -1 });
 localMissionSchema.index({ status: 1, createdAt: -1 });
+localMissionSchema.index({ location: "2dsphere" }, { sparse: true });
 
 export const localMissionModel: Model<ILocalMission> = mongoose.model<ILocalMission>(
   "LocalMission",

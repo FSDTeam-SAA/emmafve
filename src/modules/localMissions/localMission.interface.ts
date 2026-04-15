@@ -1,5 +1,10 @@
 import { Document, Types } from "mongoose";
 
+export interface IGeoPoint {
+  type: "Point";
+  coordinates: [number, number]; // [longitude, latitude]
+}
+
 export enum LocalMissionStatus {
   ACTIVE = "active",
   INACTIVE = "inactive",
@@ -15,6 +20,7 @@ export interface ILocalMission extends Document {
   title: string;
   description: string;
   address: string;
+  location?: IGeoPoint;
   duration: string;
   points?: number;
   photo?: {
@@ -28,6 +34,7 @@ export interface CreateLocalMissionPayload {
   title: string;
   description: string;
   address: string;
+  location?: IGeoPoint;
   duration: string;
   points?: number;
 }
@@ -36,6 +43,7 @@ export interface UpdateLocalMissionPayload {
   title?: string;
   description?: string;
   address?: string;
+  location?: IGeoPoint;
   duration?: string;
   points?: number;
   status?: LocalMissionStatus;
