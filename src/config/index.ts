@@ -78,6 +78,14 @@ mailer: {
     max: Number(process.env.RATE_LIMIT_MAX) || 100,
     delay: Number(process.env.RATE_LIMIT_DELAY) || 50,
   },
+
+  /* ================= Firebase ================= */
+  firebase: {
+    projectId: process.env.FIREBASE_PROJECT_ID,
+    clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+    privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
+    databaseUrl: process.env.FIREBASE_DATABASE_URL,
+  },
 };
 
 export default config;

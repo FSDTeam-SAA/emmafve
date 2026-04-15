@@ -208,4 +208,23 @@ export const userService = {
 
     return true;
   },
+
+  //update fcm token
+  async updateFcmToken(req: any) {
+    const { email } = req?.user as { email: string };
+    const { fcmToken } = req.body as { fcmToken: string };
+
+    const user = await userModel.findOne({ email: email });
+    if (!user) {
+      throw new CustomError(404, "User not found");
+    }
+
+    // Add exactly once to the array
+    if (!user.fcmTokens.includes(fcmToken)) {
+      user.fcmTokens.push(fcmToken);
+      await user.save();
+    }
+
+    return true;
+  },
 };

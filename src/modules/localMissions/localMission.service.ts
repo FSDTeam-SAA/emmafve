@@ -18,6 +18,8 @@ import {
 } from "./localMission.interface";
 import { localMissionModel } from "./localMission.models";
 import { localMissionParticipationModel } from "./localMissionParticipation.models";
+import { notificationService } from "../notifications/notification.service";
+import { NotificationType } from "../notifications/notification.interface";
 
 const partnerPopulate = "firstName lastName email profileImage company";
 
@@ -63,6 +65,21 @@ export const localMissionService = {
         partner: partner._id.toString(),
         ...(photo ? { photo } : {}),
       });
+
+      // Fire & Forget Notification
+      const baseTitle = "New Local Mission Available!";
+      const baseDesc = `A new mission "${mission.title}" was just created near you. Help out and earn points!`;
+
+      if (mission.location && mission.location.coordinates && mission.location.coordinates.length >= 2) {
+        const lng = mission.location.coordinates[0] as number;
+        const lat = mission.location.coordinates[1] as number;
+        notificationService.notifyUsersNearby(baseTitle, baseDesc, NotificationType.NEW_MISSION, lat, lng, 10)
+          .catch((err) => console.error("Notification Error:", err));
+      } else {
+        notificationService.notifyUsersNearby(baseTitle, baseDesc, NotificationType.NEW_MISSION)
+          .catch((err) => console.error("Notification Error:", err));
+      }
+
       return await mission.populate("partner", partnerPopulate);
     } catch (error) {
       await deleteCloudinaryQuietly(photo?.public_id);
@@ -287,7 +304,7 @@ export const localMissionService = {
     const session = await mongoose.startSession();
 
     try {
-      let result;
+      let result: any;
 
       await session.withTransaction(async () => {
         const transaction = await pointTransactionModel.create(
@@ -340,6 +357,16 @@ export const localMissionService = {
           transaction: transaction[0],
         };
       });
+
+      // Fire & Forget Notification
+      if (result && result.participation) {
+        notificationService.notifySingleUser(
+          participation.user.toString(),
+          "Points Earned!",
+          `Congratulations! You've earned ${points} points for completely participating in the mission "${mission.title}".`,
+          NotificationType.POINTS_EARNED
+        ).catch((err) => console.error("Notification Error:", err));
+      }
 
       return result;
     } catch (error: any) {
@@ -394,6 +421,21 @@ export const localMissionService = {
     if (!mission) throw new CustomError(404, "Local mission not found");
     if (mission.partner.toString() !== partner._id.toString()) {
       throw new CustomError(403, "You can only delete your own local missions");
+    }
+
+    // Fire & Forget Notifications to all participants
+    try {
+      const participants = await localMissionParticipationModel.find({ mission: mission._id });
+      participants.forEach((p) => {
+        notificationService.notifySingleUser(
+          p.user.toString(),
+          "Mission Cancelled",
+          `The local mission "${mission.title}" has been cancelled by the partner.`,
+          NotificationType.MISSION_CANCELLED
+        ).catch((err) => console.error("Notification Error:", err));
+      });
+    } catch (err) {
+      console.error("Failed to notify participants on mission deletion:", err);
     }
 
     await mission.deleteOne();
