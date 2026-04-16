@@ -4,20 +4,27 @@ import ApiResponse from "../../utils/apiResponse";
 import { notificationService } from "./notification.service";
 
 export const getUserNotifications = asyncHandler(async (req: Request, res: Response) => {
-  const { userId } = req.user as any;
-  const page = parseInt(req.query.page as string) || 1;
-  const limit = parseInt(req.query.limit as string) || 10;
+  const userId = (req.user as any)._id;
+  const { page, limit } = req.query;
 
   const result = await notificationService.getUserNotifications(userId, page, limit);
 
   ApiResponse.sendSuccess(res, 200, "Notifications fetched successfully", result.notifications, result.meta);
 });
 
-export const markNotificationAsRead = asyncHandler(async (req: Request, res: Response) => {
-  const { userId } = req.user as any;
-  const { id } = req.params as { id: string };
+export const getAdminNotifications = asyncHandler(async (req: Request, res: Response) => {
+  const { page, limit } = req.query;
 
-  const updated = await notificationService.markAsRead(userId, id);
+  const result = await notificationService.getAllAdminNotifications(page, limit);
+
+  ApiResponse.sendSuccess(res, 200, "Admin notifications fetched successfully", result.notifications, result.meta);
+});
+
+export const markNotificationAsRead = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req.user as any)._id;
+  const { notificationId } = req.params as { notificationId: string };
+
+  const updated = await notificationService.markAsRead(userId, notificationId);
 
   if (!updated) {
     ApiResponse.sendError(res, 404, "Notification not found or already read");
@@ -25,4 +32,18 @@ export const markNotificationAsRead = asyncHandler(async (req: Request, res: Res
   }
 
   ApiResponse.sendSuccess(res, 200, "Notification marked as read successfully", updated);
+});
+
+export const deleteNotification = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req.user as any)._id;
+  const { notificationId } = req.params as { notificationId: string };
+
+  const isDeleted = await notificationService.deleteNotification(userId, notificationId);
+
+  if (!isDeleted) {
+    ApiResponse.sendError(res, 404, "Notification not found or access denied");
+    return;
+  }
+
+  ApiResponse.sendSuccess(res, 200, "Notification deleted successfully");
 });

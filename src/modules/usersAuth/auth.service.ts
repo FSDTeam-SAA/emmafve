@@ -151,6 +151,10 @@ export const authService = {
     const user = await userModel.findOne({ email: email });
     if (!user) throw new CustomError(400, "User not found");
 
+    if (user.status !== status.ACTIVE) {
+      throw new CustomError(403, `Your account is ${user.status}. Access denied.`);
+    }
+
     const otp = generateOTP();
 
     await mailer({
@@ -228,6 +232,11 @@ export const authService = {
     if (user.refreshToken !== refreshToken) {
       throw new CustomError(401, "Invalid refresh token");
     }
+
+    if (user.status !== status.ACTIVE) {
+      throw new CustomError(403, `Your account is ${user.status}. Access denied.`);
+    }
+
     const accessToken = user.createAccessToken();
     return { accessToken, rememberMe: user.rememberMe };
   },

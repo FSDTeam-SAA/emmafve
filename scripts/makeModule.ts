@@ -7,8 +7,8 @@ import path from "path";
 const moduleName = process.argv[2];
 
 if (!moduleName) {
-    console.error("❌ Please provide a module name. Example: npm run make:module category");
-    process.exit(1);
+  console.error(" Please provide a module name. Example: npm run make:module category");
+  process.exit(1);
 }
 
 const capitalize = (str: string) => str.charAt(0).toUpperCase() + str.slice(1);
@@ -21,8 +21,8 @@ if (!fs.existsSync(basePath)) fs.mkdirSync(basePath, { recursive: true });
 
 // ===== Interface =====
 fs.writeFileSync(
-    path.join(basePath, `${lowerModule}.interface.ts`),
-    `
+  path.join(basePath, `${lowerModule}.interface.ts`),
+  `
     //TODO: customize as needed
     
     export interface I${Module} {
@@ -46,8 +46,8 @@ export interface ICreate${Module} {
 
 // ===== Validation =====
 fs.writeFileSync(
-    path.join(basePath, `${lowerModule}.validation.ts`),
-    `import { z } from "zod";
+  path.join(basePath, `${lowerModule}.validation.ts`),
+  `import { z } from "zod";
 //TODO: customize as needed
 export const create${Module}Schema = z.object({
   title: z.string().min(3).max(50).transform(val => val.trim()),
@@ -58,8 +58,8 @@ export const create${Module}Schema = z.object({
 
 // ===== Model =====
 fs.writeFileSync(
-    path.join(basePath, `${lowerModule}.models.ts`),
-    `import mongoose, { Schema } from "mongoose";
+  path.join(basePath, `${lowerModule}.models.ts`),
+  `import mongoose, { Schema } from "mongoose";
     import slugify from "slugify";
     import CustomError from "../../helpers/CustomError";
 import { I${Module} } from "./${lowerModule}.interface";
@@ -115,8 +115,8 @@ export const ${Module}Model = mongoose.model<I${Module}>("${Module}", ${lowerMod
 
 // ===== Service =====
 fs.writeFileSync(
-    path.join(basePath, `${lowerModule}.service.ts`),
-    `import { ${Module}Model } from "./${lowerModule}.models";
+  path.join(basePath, `${lowerModule}.service.ts`),
+  `import { ${Module}Model } from "./${lowerModule}.models";
 import { ICreate${Module} } from "./${lowerModule}.interface";
 import CustomError from "../../helpers/CustomError";
 import { uploadCloudinary } from "../../helpers/cloudinary";
@@ -144,8 +144,8 @@ export const ${lowerModule}Service = { create${Module} };
 
 // ===== Controller =====
 fs.writeFileSync(
-    path.join(basePath, `${lowerModule}.controller.ts`),
-    `import type { Request, Response } from "express";
+  path.join(basePath, `${lowerModule}.controller.ts`),
+  `import type { Request, Response } from "express";
 import { asyncHandler } from "../../utils/asyncHandler";
 import ApiResponse from "../../utils/apiResponse";
 import { ICreate${Module} } from "./${lowerModule}.interface";
@@ -163,8 +163,8 @@ export const create${Module} = asyncHandler(async (req: Request, res: Response) 
 
 // ===== Routes =====
 fs.writeFileSync(
-    path.join(basePath, `${lowerModule}.routes.ts`),
-    `import express from "express";
+  path.join(basePath, `${lowerModule}.routes.ts`),
+  `import express from "express";
 import { create${Module} } from "./${lowerModule}.controller";
 import { validateRequest } from "../../middleware/validateRequest.middleware";
 import { create${Module}Schema } from "./${lowerModule}.validation";

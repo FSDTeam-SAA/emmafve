@@ -19,7 +19,7 @@ export const initFirebase = () => {
       console.log('✅ Firebase Admin SDK initialized successfully');
     }
   } catch (error) {
-    console.error('❌ Failed to initialize Firebase Admin:', error);
+    console.error(' Failed to initialize Firebase Admin:', error);
   }
 };
 
@@ -38,7 +38,7 @@ export const sendPushNotification = async (tokens: string[], title: string, body
     };
 
     const response = await admin.messaging().sendEachForMulticast(payload);
-    
+
     if (response.failureCount > 0) {
       const failedTokens: string[] = [];
       response.responses.forEach((resp: any, idx: number) => {
@@ -47,9 +47,9 @@ export const sendPushNotification = async (tokens: string[], title: string, body
           if (token) failedTokens.push(token);
         }
       });
-      console.log('❌ Failed to send FCM push to tokens:', failedTokens);
+      console.log(' Failed to send FCM push to tokens:', failedTokens);
     }
   } catch (error) {
-    console.error('❌ Error sending FCM Broadcast:', error);
+    console.error(' Error sending FCM Broadcast:', error);
   }
 };

@@ -1,24 +1,63 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <title>Socket Notification Tester</title>
   <style>
-    body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #a6e22e; }
-    h2 { color: #fff; }
-    #logs { background: #000; padding: 10px; min-height: 200px; border: 1px solid #333; margin-top: 20px; overflow-y: auto; max-height: 500px;}
-    .log-item { margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 10px; }
-    .notification { color: #fd971f; }
-    .status { color: #66d9ef; font-weight: bold; }
-    input { padding: 5px; width: 300px; }
-    button { padding: 5px 15px; cursor: pointer; }
+    body {
+      font-family: monospace;
+      padding: 20px;
+      background: #1e1e1e;
+      color: #a6e22e;
+    }
+
+    h2 {
+      color: #fff;
+    }
+
+    #logs {
+      background: #000;
+      padding: 10px;
+      min-height: 200px;
+      border: 1px solid #333;
+      margin-top: 20px;
+      overflow-y: auto;
+      max-height: 500px;
+    }
+
+    .log-item {
+      margin-bottom: 15px;
+      border-bottom: 1px solid #333;
+      padding-bottom: 10px;
+    }
+
+    .notification {
+      color: #fd971f;
+    }
+
+    .status {
+      color: #66d9ef;
+      font-weight: bold;
+    }
+
+    input {
+      padding: 5px;
+      width: 300px;
+    }
+
+    button {
+      padding: 5px 15px;
+      cursor: pointer;
+    }
   </style>
 </head>
+
 <body>
 
   <h2>Live Socket Notification Tester</h2>
   <div>
-    <label>Target User ID (MongoDB Object ID):</label><br/>
+    <label>Target User ID (MongoDB Object ID):</label><br />
     <input type="text" id="userId" placeholder="69dbef... (Your logged in ID)">
     <button onclick="connectSocket()">Connect Dashboard</button>
   </div>
@@ -44,7 +83,7 @@
       if (!userId) return addLog("Please enter a valid User ID first!", "notification");
 
       // Disconnect previous if multiple clicks
-      if (socket) socket.disconnect(); 
+      if (socket) socket.disconnect();
 
       addLog(`Attempting to connect to backend for User ID: ${userId}...`);
 
@@ -52,7 +91,7 @@
       // and pass the userId securely in the handshake query exactly how your backend expects it.
       socket = io("http://localhost:5000", {
         query: { userId },
-        transports: ['websocket', 'polling'] 
+        transports: ['websocket', 'polling']
       });
 
       // Event: On Successful Connection
@@ -62,7 +101,7 @@
       });
 
       socket.on("disconnect", () => {
-        addLog(`❌ Disconnected from Server.`);
+        addLog(` Disconnected from Server.`);
       });
 
       socket.on("connect_error", (error) => {
@@ -77,4 +116,5 @@
     }
   </script>
 </body>
+
 </html>
