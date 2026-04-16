@@ -77,7 +77,7 @@ export const initSocket = (httpServer: http.Server): Server => {
 
     // Disconnect
     socket.on('disconnect', () => {
-      console.log('❌ Socket disconnected:', socket.id);
+      console.log(' Socket disconnected:', socket.id);
     });
   });
 
