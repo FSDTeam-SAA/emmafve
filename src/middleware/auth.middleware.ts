@@ -4,6 +4,7 @@ import config from "../config";
 import CustomError from "../helpers/CustomError";
 import { userModel } from "../modules/usersAuth/user.models";
 import { Types } from "mongoose";
+import { status } from "../modules/usersAuth/user.interface";
 // import { redisTokenService } from "../helpers/redisTokenService";
 
 interface TokenPayload extends JwtPayload {
@@ -43,6 +44,10 @@ export const authGuard = async (
       .lean();
     if (!user) {
       throw new CustomError(401, "User not found!");
+    }
+
+    if (user.status !== status.ACTIVE) {
+      throw new CustomError(403, `Your account is ${user.status}. Access denied.`);
     }
 
     req.user = {
