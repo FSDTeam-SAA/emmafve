@@ -39,7 +39,7 @@ export const authGuard = async (
 
     const user = await userModel
       .findById(decoded.userId)
-      .select("_id email role")
+      .select("_id email role status")
       .lean();
     if (!user) {
       throw new CustomError(401, "User not found!");
@@ -49,6 +49,7 @@ export const authGuard = async (
       _id: user._id,
       email: user.email,
       role: user.role,
+      status: user.status,
     };
 
     next();

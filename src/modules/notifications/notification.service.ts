@@ -4,10 +4,11 @@ import { userModel } from "../usersAuth/user.models";
 import { NotificationType } from "./notification.interface";
 import { sendPushNotification } from "../../utils/firebase";
 import { getIo } from "../../socket/server";
+import { paginationHelper } from "../../utils/pagination";
 
 export const notificationService = {
-  async getUserNotifications(userId: string, page: number = 1, limit: number = 10) {
-    const skip = (page - 1) * limit;
+  async getUserNotifications(userId: string, pageQuery?: any, limitQuery?: any) {
+    const { page, limit, skip } = paginationHelper(pageQuery, limitQuery);
 
     const [notifications, total] = await Promise.all([
       notificationModel
@@ -33,12 +34,42 @@ export const notificationService = {
     };
   },
 
+  async getAllAdminNotifications(pageQuery?: any, limitQuery?: any) {
+    const { page, limit, skip } = paginationHelper(pageQuery, limitQuery);
+
+    const [notifications, total] = await Promise.all([
+      notificationModel
+        .find()
+        .populate("user", "firstName lastName email role")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean(),
+      notificationModel.countDocuments(),
+    ]);
+
+    return {
+      notifications,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+      },
+    };
+  },
+
   async markAsRead(userId: string, notificationId: string) {
     return notificationModel.findOneAndUpdate(
       { _id: notificationId, user: userId },
       { isRead: true },
       { new: true }
     );
+  },
+
+  async deleteNotification(userId: string, notificationId: string) {
+    const result = await notificationModel.deleteOne({ _id: notificationId, user: userId });
+    return result.deletedCount > 0;
   },
 
   async notifyUsersNearby(title: string, body: string, type: NotificationType, lat?: number, lng?: number, radiusKm: number = 10) {
@@ -62,14 +93,14 @@ export const notificationService = {
       } else {
         console.log(`[Notification Service] No event coordinates provided. Broadcasting to ALL active users.`);
       }
-      
+
       const usersNearby = await userModel.find(filter).select("_id fcmTokens");
 
       console.log(`[Notification Service] Found ${usersNearby.length} target users.`);
 
       if (!usersNearby.length) {
-         console.log(`[Notification Service] Aborting. Reason: No users found within radius. Ensure testing user has a 'location' saved in the DB!`);
-         return;
+        console.log(`[Notification Service] Aborting. Reason: No users found within radius. Ensure testing user has a 'location' saved in the DB!`);
+        return;
       }
 
       const notificationsToSave = usersNearby.map(u => ({
@@ -110,7 +141,7 @@ export const notificationService = {
       // }
 
     } catch (error) {
-      console.error("❌ Failed in notifyUsersNearby:", error);
+      console.error(" Failed in notifyUsersNearby:", error);
     }
   },
 
@@ -132,7 +163,7 @@ export const notificationService = {
       let io: any;
       try {
         io = getIo();
-      } catch (err) {}
+      } catch (err) { }
 
       if (io) {
         io.to(user._id.toString()).emit("notification:new", savedNotification);
@@ -144,7 +175,7 @@ export const notificationService = {
       // }
 
     } catch (error) {
-      console.error("❌ Failed in notifySingleUser:", error);
+      console.error(" Failed in notifySingleUser:", error);
     }
   }
 };
