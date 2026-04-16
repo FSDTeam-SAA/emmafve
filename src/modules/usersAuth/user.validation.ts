@@ -57,3 +57,9 @@ export const updatePasswordSchema = z
     message: "New password and confirm password do not match",
     path: ["confirmPassword"],
   });
+
+export const updateFcmTokenSchema = z
+  .object({
+    fcmToken: z.string().min(1, "FCM token cannot be empty"),
+  })
+  .strict();

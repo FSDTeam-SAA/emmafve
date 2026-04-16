@@ -111,6 +111,20 @@ const userSchema = new Schema<IUser>(
       type: Boolean,
       default: false,
     },
+    fcmTokens: {
+      type: [String],
+      default: [],
+    },
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+      },
+      address: String,
+    },
   },
   {
     timestamps: true,
@@ -145,6 +159,8 @@ userSchema.index(
     collation: { locale: "en", strength: 2 },
   },
 );
+
+userSchema.index({ location: "2dsphere" }, { sparse: true });
 
 // compare password
 userSchema.methods.comparePassword = async function (

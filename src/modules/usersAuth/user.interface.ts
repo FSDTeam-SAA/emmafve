@@ -34,6 +34,11 @@ export interface IUser extends Document {
   status: status;
   selfIntroduction: string;
   address: string;
+  location?: {
+    type: string;
+    coordinates: number[];
+    address?: string;
+  };
   company: string;
   pointsBalance: number;
   isVerified: boolean;
@@ -49,6 +54,7 @@ export interface IUser extends Document {
     tokenExpire: Date | null;
   };
   rememberMe: boolean;
+  fcmTokens: string[];
   lastLogin: Date;
   comparePassword: (password: string) => Promise<boolean>;
   createAccessToken: () => string;

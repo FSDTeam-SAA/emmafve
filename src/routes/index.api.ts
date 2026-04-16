@@ -12,6 +12,7 @@ import { pointRoute } from "../modules/points/point.route";
 import { stripeWebhookHandler } from "../webHook/stripe.webhook";
 import { paymentRoute } from "../modules/payment/payment.routes";
 import { donationRoute } from "../modules/donation/donation.routes";
+import { notificationRoute } from "../modules/notifications/notification.route";
 
 router.use("/user", userRoute);
 router.use("/auth", authRoute);
@@ -30,5 +31,6 @@ router.post(
 
 router.use("/payments", paymentRoute);
 router.use("/donations", donationRoute);
+router.use("/notifications", notificationRoute);
 
 export default router;

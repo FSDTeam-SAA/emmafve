@@ -6,6 +6,7 @@ import {
   updateStatus,
   updatePassword,
   updateUser,
+  updateFcmToken,
 } from "./user.controller";
 import { allowRole, authGuard } from "../../middleware/auth.middleware";
 import { upload } from "../../middleware/multer.midleware";
@@ -14,6 +15,7 @@ import {
   updatePasswordSchema,
   updateStatusSchema,
   updateUserSchema,
+  updateFcmTokenSchema,
 } from "./user.validation";
 import { rateLimiter } from "../../middleware/rateLimiter.middleware";
 
@@ -49,4 +51,12 @@ router.patch(
   updatePassword,
 );
 
+router.patch(
+  "/update-fcm-token",
+  authGuard,
+  validateRequest(updateFcmTokenSchema),
+  updateFcmToken,
+);
+
 export const userRoute = router;
+

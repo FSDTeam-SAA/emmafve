@@ -52,3 +52,9 @@ export const updatePassword = asyncHandler(async (req: Request, res: Response) =
     "Password changed successfully. Please login again."
   );
 });
+
+//: update fcm token
+export const updateFcmToken = asyncHandler(async (req: Request, res: Response) => {
+  await userService.updateFcmToken(req);
+  ApiResponse.sendSuccess(res, 200, "FCM Token registered successfully");
+});

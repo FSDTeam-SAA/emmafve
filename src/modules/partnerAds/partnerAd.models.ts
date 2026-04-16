@@ -28,6 +28,15 @@ const partnerAdSchema = new Schema<IPartnerAd>(
       required: true,
       trim: true,
     },
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+      },
+    },
     photo: {
       public_id: String,
       secure_url: String,
@@ -46,6 +55,7 @@ const partnerAdSchema = new Schema<IPartnerAd>(
 
 partnerAdSchema.index({ partner: 1, createdAt: -1 });
 partnerAdSchema.index({ type: 1, status: 1, createdAt: -1 });
+partnerAdSchema.index({ location: "2dsphere" }, { sparse: true });
 
 export const partnerAdModel: Model<IPartnerAd> = mongoose.model<IPartnerAd>(
   "PartnerAd",

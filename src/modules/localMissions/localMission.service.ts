@@ -18,6 +18,8 @@ import {
 } from "./localMission.interface";
 import { localMissionModel } from "./localMission.models";
 import { localMissionParticipationModel } from "./localMissionParticipation.models";
+import { notificationService } from "../notifications/notification.service";
+import { NotificationType } from "../notifications/notification.interface";
 
 const partnerPopulate = "firstName lastName email profileImage company";
 
@@ -63,6 +65,21 @@ export const localMissionService = {
         partner: partner._id.toString(),
         ...(photo ? { photo } : {}),
       });
+
+      // Fire & Forget Notification
+      const baseTitle = "New Local Mission Available!";
+      const baseDesc = `A new mission "${mission.title}" was just created near you. Help out and earn points!`;
+
+      if (mission.location && mission.location.coordinates && mission.location.coordinates.length >= 2) {
+        const lng = mission.location.coordinates[0] as number;
+        const lat = mission.location.coordinates[1] as number;
+        notificationService.notifyUsersNearby(baseTitle, baseDesc, NotificationType.NEW_MISSION, lat, lng, 10)
+          .catch((err) => console.error("Notification Error:", err));
+      } else {
+        notificationService.notifyUsersNearby(baseTitle, baseDesc, NotificationType.NEW_MISSION)
+          .catch((err) => console.error("Notification Error:", err));
+      }
+
       return await mission.populate("partner", partnerPopulate);
     } catch (error) {
       await deleteCloudinaryQuietly(photo?.public_id);
@@ -81,11 +98,36 @@ export const localMissionService = {
       sort,
       sortBy,
       status = LocalMissionStatus.ACTIVE,
+      lat,
+      lng,
+      radius, // in km, defaults to 5 km when lat/lng provided
     } = req.query;
 
     const { page, limit, skip } = paginationHelper(pagebody as string, limitbody as string);
     const filter: any = {};
     const companyQuery = typeof company === "string" && company.trim() ? company.trim() : undefined;
+
+    // Radius / geospatial filter
+    const hasGeo = lat !== undefined && lng !== undefined;
+    if (hasGeo) {
+      const latNum = parseFloat(lat as string);
+      const lngNum = parseFloat(lng as string);
+      const radiusKm = radius !== undefined ? parseFloat(radius as string) : 5;
+
+      if (isNaN(latNum) || isNaN(lngNum)) {
+        throw new CustomError(400, "Invalid lat/lng values. Must be valid numbers.");
+      }
+      if (isNaN(radiusKm) || radiusKm <= 0) {
+        throw new CustomError(400, "Invalid radius value. Must be a positive number (km).");
+      }
+
+      // Convert km to radians for $centerSphere (Earth radius = 6378.1 km)
+      filter.location = {
+        $geoWithin: {
+          $centerSphere: [[lngNum, latNum], radiusKm / 6378.1],
+        },
+      };
+    }
 
     if (companyQuery) {
       const partners = await userModel
@@ -141,6 +183,7 @@ export const localMissionService = {
       }
     }
 
+    // $geoWithin is compatible with regular sort — always apply it
     if (sort && sort !== "ascending" && sort !== "descending") {
       throw new CustomError(400, "Invalid sort value. Must be 'ascending' or 'descending'");
     }
@@ -152,11 +195,11 @@ export const localMissionService = {
       points: "points",
     };
     const sortByValue = typeof sortBy === "string" ? sortBy : "date";
-    const sortField = sortFields[sortByValue.toLowerCase()];
+    const sortField = sortFields[sortByValue.toLowerCase()] ?? null;
     if (!sortField) {
       throw new CustomError(400, `Invalid sortBy value. Must be one of: ${Object.keys(sortFields).join(", ")}`);
     }
-    const sortOrder = sort === "ascending" ? 1 : -1;
+    const sortOrder: 1 | -1 = sort === "ascending" ? 1 : -1;
 
     const [missions, total] = await Promise.all([
       localMissionModel
@@ -261,7 +304,7 @@ export const localMissionService = {
     const session = await mongoose.startSession();
 
     try {
-      let result;
+      let result: any;
 
       await session.withTransaction(async () => {
         const transaction = await pointTransactionModel.create(
@@ -314,6 +357,16 @@ export const localMissionService = {
           transaction: transaction[0],
         };
       });
+
+      // Fire & Forget Notification
+      if (result && result.participation) {
+        notificationService.notifySingleUser(
+          participation.user.toString(),
+          "Points Earned!",
+          `Congratulations! You've earned ${points} points for completely participating in the mission "${mission.title}".`,
+          NotificationType.POINTS_EARNED
+        ).catch((err) => console.error("Notification Error:", err));
+      }
 
       return result;
     } catch (error: any) {
@@ -368,6 +421,21 @@ export const localMissionService = {
     if (!mission) throw new CustomError(404, "Local mission not found");
     if (mission.partner.toString() !== partner._id.toString()) {
       throw new CustomError(403, "You can only delete your own local missions");
+    }
+
+    // Fire & Forget Notifications to all participants
+    try {
+      const participants = await localMissionParticipationModel.find({ mission: mission._id });
+      participants.forEach((p) => {
+        notificationService.notifySingleUser(
+          p.user.toString(),
+          "Mission Cancelled",
+          `The local mission "${mission.title}" has been cancelled by the partner.`,
+          NotificationType.MISSION_CANCELLED
+        ).catch((err) => console.error("Notification Error:", err));
+      });
+    } catch (err) {
+      console.error("Failed to notify participants on mission deletion:", err);
     }
 
     await mission.deleteOne();
