@@ -17,6 +17,7 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:5173",
+  "http://10.10.5.111:3000", 
 ].filter(Boolean);
 
 if (config.env === "development") {
@@ -45,7 +46,13 @@ app.get("/api/v1/ping", (req: Request, res: Response) => {
   });
 });
 app.use(cookieParser());
-app.use(express.json());
+app.use((req, res, next) => {
+  if (req.originalUrl === "/api/v1/webhook/stripe") {
+    express.raw({ type: "application/json" })(req, res, next);
+  } else {
+    express.json()(req, res, next);
+  }
+});
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api/v1", routes);

@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Stripe Test</title>
+    <script src="https://js.stripe.com/v3/"></script>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+      body {
+        font-family: sans-serif;
+        background: #f0f0f0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 100vh;
+      }
+      .card {
+        background: white;
+        padding: 32px;
+        border-radius: 12px;
+        width: 420px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+      }
+      h2 {
+        margin-bottom: 24px;
+        color: #333;
+      }
+      .field {
+        margin-bottom: 16px;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        color: #555;
+        margin-bottom: 6px;
+      }
+      input {
+        width: 100%;
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 14px;
+      }
+      #card-element {
+        padding: 10px 12px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        background: white;
+      }
+      button {
+        width: 100%;
+        padding: 12px;
+        background: #8b3a3a;
+        color: white;
+        border: none;
+        border-radius: 6px;
+        font-size: 15px;
+        cursor: pointer;
+        margin-top: 8px;
+      }
+      button:disabled {
+        background: #ccc;
+        cursor: not-allowed;
+      }
+      #message {
+        margin-top: 16px;
+        padding: 12px;
+        border-radius: 6px;
+        font-size: 14px;
+        display: none;
+      }
+      .success {
+        background: #d4edda;
+        color: #155724;
+        display: block !important;
+      }
+      .error {
+        background: #f8d7da;
+        color: #721c24;
+        display: block !important;
+      }
+      .loading {
+        background: #fff3cd;
+        color: #856404;
+        display: block !important;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h2>🐾 Hesteka — Donation Test</h2>
+
+      <div class="field">
+        <label>Name</label>
+        <input type="text" id="donorName" value="Jane Doe" />
+      </div>
+
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="donorEmail" value="donor@example.com" />
+      </div>
+
+      <div class="field">
+        <label>Amount (€)</label>
+        <input type="number" id="amount" value="10" min="1" />
+      </div>
+
+      <div class="field">
+        <label>Card Details</label>
+        <div id="card-element"></div>
+      </div>
+
+      <button id="pay-btn">Donate Now</button>
+      <div id="message"></div>
+    </div>
+
+    <script>
+      const BACKEND_URL = "http://10.10.5.111:5000/api/v1";
+      const PUBLISHABLE_KEY =
+        "pk_test_51ShzG65v6xjmDo05UhGMIsToDUCvN1B0ZrJlTjiYYNuwQ2xrc4ZnHAhPP3mbMQkGHo5gJqlrlQuobgQpSvLSbZOj00U9EPKZMw";
+
+      const stripe = Stripe(PUBLISHABLE_KEY);
+      const elements = stripe.elements();
+      const cardElement = elements.create("card", {
+        style: {
+          base: {
+            fontSize: "15px",
+            color: "#333",
+            "::placeholder": { color: "#aaa" },
+          },
+        },
+      });
+      cardElement.mount("#card-element");
+
+      const btn = document.getElementById("pay-btn");
+      const msg = document.getElementById("message");
+
+      function showMessage(text, type) {
+        msg.textContent = text;
+        msg.className = type;
+      }
+
+      btn.addEventListener("click", async () => {
+        btn.disabled = true;
+        showMessage("Processing...", "loading");
+
+        const donorName = document.getElementById("donorName").value;
+        const donorEmail = document.getElementById("donorEmail").value;
+        const amount = Number(document.getElementById("amount").value);
+
+        try {
+          // Step 1 — Backend থেকে clientSecret নাও
+          const res = await fetch(`${BACKEND_URL}/donations/stripe/create-payment-intent`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              amount,
+              currency: "eur",
+              type: "one-time",
+              donorEmail,
+              donorName,
+              isCompanyDonation: false,
+            }),
+          });
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            showMessage(data.message || "Failed to initiate payment", "error");
+            btn.disabled = false;
+            return;
+          }
+
+          const clientSecret = data.data.clientSecret;
+
+          // Step 2 — Stripe দিয়ে card charge করো
+          const { error, paymentIntent } = await stripe.confirmCardPayment(
+            clientSecret,
+            {
+              payment_method: {
+                card: cardElement,
+                billing_details: {
+                  name: donorName,
+                  email: donorEmail,
+                },
+              },
+            },
+          );
+
+          if (error) {
+            showMessage(error.message, "error");
+            btn.disabled = false;
+            return;
+          }
+
+          if (paymentIntent.status === "succeeded") {
+            showMessage(
+              `✅ Payment successful! ID: ${paymentIntent.id}`,
+              "success",
+            );
+            cardElement.clear();
+          }
+        } catch (err) {
+          showMessage("Something went wrong. Try again.", "error");
+        }
+
+        btn.disabled = false;
+      });
+    </script>
+  </body>
+</html>

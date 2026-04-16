@@ -28,14 +28,14 @@ const config = {
     refreshTokenExpires: process.env.REFRESH_TOKEN_EXPIRES ?? "7d",
   },
 
-mailer: {
+  mailer: {
     hostMail: process.env.HOST_MAIL as string,
     appPassword: process.env.APP_PASSWORD as string,
   },
 
   provider: {
-    googleClientId: process.env.GOOGLE_CLIENT_ID,           // Web Client ID (used by backend)
-    googleIosClientId: process.env.GOOGLE_IOS_CLIENT_ID,   // iOS Client ID (for Flutter iOS)
+    googleClientId: process.env.GOOGLE_CLIENT_ID, // Web Client ID (used by backend)
+    googleIosClientId: process.env.GOOGLE_IOS_CLIENT_ID, // iOS Client ID (for Flutter iOS)
     googleAndroidClientId: process.env.GOOGLE_ANDROID_CLIENT_ID, // Android Client ID (for Flutter Android)
     appleClientId: process.env.APPLE_CLIENT_ID,
   },
@@ -63,7 +63,6 @@ mailer: {
     webhookSecret: process.env.STRIPE_WEBHOOK_SECRET as string,
   },
 
-
   //redis
   redisUrl: process.env.REDIS_URL,
   /* ================= Gemini API ================= */
@@ -78,6 +77,11 @@ mailer: {
     max: Number(process.env.RATE_LIMIT_MAX) || 100,
     delay: Number(process.env.RATE_LIMIT_DELAY) || 50,
   },
+  paypal: {
+    clientId: process.env.PAYPAL_CLIENT_ID as string,
+    clientSecret: process.env.PAYPAL_CLIENT_SECRET as string,
+    mode: process.env.PAYPAL_MODE as string
+  },
 
   /* ================= Firebase ================= */
   firebase: {
@@ -85,7 +89,7 @@ mailer: {
     clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
     privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
     databaseUrl: process.env.FIREBASE_DATABASE_URL,
-  },
+  }
 };
 
 export default config;
