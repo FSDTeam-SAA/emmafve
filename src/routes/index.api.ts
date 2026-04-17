@@ -13,6 +13,7 @@ import { stripeWebhookHandler } from "../webHook/stripe.webhook";
 import { paymentRoute } from "../modules/payment/payment.routes";
 import { donationRoute } from "../modules/donation/donation.routes";
 import { notificationRoute } from "../modules/notifications/notification.route";
+import { paypalWebhookHandler } from "../webHook/paypal.webhook";
 
 router.use("/user", userRoute);
 router.use("/auth", authRoute);
@@ -28,6 +29,7 @@ router.post(
 
   stripeWebhookHandler,
 );
+router.post("/webhook/paypal", paypalWebhookHandler);
 
 router.use("/payments", paymentRoute);
 router.use("/donations", donationRoute);

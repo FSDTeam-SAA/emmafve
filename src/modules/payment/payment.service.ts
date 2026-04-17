@@ -193,9 +193,43 @@ const capturePayPalOrder = async (
   return payment;
 };
 
+const handleWebhookPayment = async (
+  provider: PaymentProvider,
+  providerTransactionId: string,
+  status: PaymentStatus,
+  metadata: Record<string, any>,
+  amount: number,
+  currency: PaymentCurrency,
+): Promise<IPayment> => {
+  const existing = await paymentModel.findOne({
+    provider,
+    providerTransactionId,
+  });
+
+  if (existing) {
+    existing.status = status;
+    await existing.save();
+    return existing;
+  }
+
+  const payment = await paymentModel.create({
+    provider,
+    providerTransactionId,
+    amount,
+    currency,
+    status,
+    payerEmail: metadata.payerEmail ?? "",
+    payerName: metadata.payerName ?? "",
+    metadata,
+  });
+
+  return payment;
+};
+
 export const paymentService = {
   createStripePaymentIntent,
   handleStripeWebhook,
   createPayPalOrder,
   capturePayPalOrder,
+  handleWebhookPayment,
 };

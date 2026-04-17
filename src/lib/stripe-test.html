@@ -154,7 +154,7 @@
 
         try {
           // Step 1 — Backend থেকে clientSecret নাও
-          const res = await fetch(`${BACKEND_URL}/donations/stripe/create-payment-intent`, {
+          const res = await fetch(`${BACKEND_URL}/donations/stripe/initiate`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
