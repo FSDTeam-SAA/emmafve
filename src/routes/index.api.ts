@@ -14,6 +14,7 @@ import { paymentRoute } from "../modules/payment/payment.routes";
 import { donationRoute } from "../modules/donation/donation.routes";
 import { notificationRoute } from "../modules/notifications/notification.route";
 import { paypalWebhookHandler } from "../webHook/paypal.webhook";
+import solidarityRoute from "../modules/solidarity/solidarity.route";
 
 router.use("/user", userRoute);
 router.use("/auth", authRoute);
@@ -34,5 +35,9 @@ router.post("/webhook/paypal", paypalWebhookHandler);
 router.use("/payments", paymentRoute);
 router.use("/donations", donationRoute);
 router.use("/notifications", notificationRoute);
+
+// Solidarity module routes
+//sopify
+router.use("/solidarity", solidarityRoute);
 
 export default router;
