@@ -3,24 +3,23 @@ import fs from "fs";
 import CustomError from "./CustomError";
 import config from "../config";
 
-//Cloudinary Config
-
 cloudinary.config({
   cloud_name: config.cloudinary.cloudName as string,
   api_key: config.cloudinary.apiKey as string,
   api_secret: config.cloudinary.apiSecret as string,
 });
 
-// Types
 interface CloudinaryUploadResult {
   public_id: string;
   secure_url: string;
+  resource_type: string;
 }
 
-//Upload to Cloudinary =
+export type CloudinaryResourceType = "image" | "video" | "raw" | "auto";
 
+// Existing — image upload
 export const uploadCloudinary = async (
-  filePath: string
+  filePath: string,
 ): Promise<CloudinaryUploadResult> => {
   try {
     if (!filePath || !fs.existsSync(filePath as string)) {
@@ -32,12 +31,12 @@ export const uploadCloudinary = async (
       quality: "auto",
     });
 
-    // Remove local file after successful upload
     fs.unlinkSync(filePath);
 
     return {
       public_id: cloudinaryResponse.public_id,
       secure_url: cloudinaryResponse.secure_url,
+      resource_type: cloudinaryResponse.resource_type,
     };
   } catch (error: any) {
     if (filePath && fs.existsSync(filePath)) {
@@ -46,22 +45,59 @@ export const uploadCloudinary = async (
 
     throw new CustomError(
       500,
-      `Failed to upload image: ${error?.message ?? "Unknown error"}`
+      `Failed to upload image: ${error?.message ?? "Unknown error"}`,
     );
   }
 };
 
-// Delete from Cloudinary
-
-export const deleteCloudinary = async (publicId: string): Promise<unknown> => {
+// New — handles image, video, raw (pdf, docs)
+export const uploadMediaCloudinary = async (
+  filePath: string,
+  resourceType: CloudinaryResourceType = "auto",
+): Promise<CloudinaryUploadResult> => {
   try {
-    return await cloudinary.uploader.destroy(publicId);
+    if (!filePath || !fs.existsSync(filePath)) {
+      throw new CustomError(400, "File path missing");
+    }
+
+    const cloudinaryResponse = await cloudinary.uploader.upload(filePath, {
+      resource_type: resourceType,
+    });
+
+    fs.unlinkSync(filePath);
+
+    return {
+      public_id: cloudinaryResponse.public_id,
+      secure_url: cloudinaryResponse.secure_url,
+      resource_type: cloudinaryResponse.resource_type,
+    };
+  } catch (error: any) {
+    if (filePath && fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    throw new CustomError(
+      500,
+      `Failed to upload file: ${error?.message ?? "Unknown error"}`,
+    );
+  }
+};
+
+// Updated — now accepts resource type (needed for video/raw deletion)
+export const deleteCloudinary = async (
+  publicId: string,
+  resourceType: CloudinaryResourceType = "image",
+): Promise<unknown> => {
+  try {
+    return await cloudinary.uploader.destroy(publicId, {
+      resource_type: resourceType,
+    });
   } catch (error: any) {
     throw new CustomError(
       500,
-      `Failed to delete image from Cloudinary: ${
+      `Failed to delete file from Cloudinary: ${
         error?.message ?? "Unknown error"
-      }`
+      }`,
     );
   }
 };
