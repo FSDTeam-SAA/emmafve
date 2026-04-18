@@ -1,12 +1,10 @@
-import express from "express";
+import { Router } from "express";
 import { getProducts, getCollections } from "./solidarity.controller";
 
-const router = express.Router();
+const router = Router();
 
-// Route to fetch all products
-router.get("/shopify/products", getProducts);
+router.get("/shopify-products", getProducts);
 
-// Route to fetch all collections
-router.get("/shopify/collections", getCollections);
+router.get("/shopify-collections", getCollections);
 
-export default router;
+export const solidarityRoute = router;
