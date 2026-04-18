@@ -1,24 +1,16 @@
-import shopify from "../../utils/shopifyClient";
 import { Request, Response } from "express";
+import ApiResponse from "../../utils/apiResponse";
+import { asyncHandler } from "../../utils/asyncHandler";
+import { solidarityService } from "./solidarity.service";
 
-export const getProducts = async (req: Request, res: Response) => {
-  try {
-    const response = await shopify.get("products.json");
-    const products = response.data.products.map((product: any) => ({
-      ...product,
-      productUrl: `https://${process.env.SHOPIFY_STORE_URL}/products/${product.handle}`,
-    }));
-    res.status(200).json(products);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-};
+export const getProducts = asyncHandler(async (req: Request, res: Response) => {
+  const products = await solidarityService.getProducts();
 
-export const getCollections = async (req: Request, res: Response) => {
-  try {
-    const response = await shopify.get("custom_collections.json");
-    res.status(200).json(response.data.custom_collections);
-  } catch (error: any) {
-    res.status(500).json({ error: error.message });
-  }
-};
+  ApiResponse.sendSuccess(res, 200, "Products fetched successfully", products);
+});
+
+export const getCollections = asyncHandler(async (req: Request, res: Response) => {
+  const collections = await solidarityService.getCollections();
+
+  ApiResponse.sendSuccess(res, 200, "Collections fetched successfully", collections);
+});
