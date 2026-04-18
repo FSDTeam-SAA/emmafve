@@ -91,6 +91,12 @@ const config = {
     privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, "\n"),
     databaseUrl: process.env.FIREBASE_DATABASE_URL,
   },
+
+  //sopify
+  shopify: {
+    storeUrl: process.env.SHOPIFY_STORE_URL as string,
+    accessToken: process.env.SHOPIFY_ACCESS_TOKEN as string,
+  },
 };
 
 export default config;
