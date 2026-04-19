@@ -1,6 +1,12 @@
 import { z } from "zod";
-//TODO: customize as needed
-export const createStoriesSchema = z.object({
-  title: z.string().min(3).max(50).transform(val => val.trim()),
-  description: z.string().max(500).optional().transform(val => val?.trim()),
+
+export const createStorySchema = z.object({
+  caption: z
+    .string()
+    .trim()
+    .max(200, "Caption cannot exceed 200 characters")
+    .optional(),
+  lat: z.number({ error: "Latitude is required" }).min(-90).max(90),
+  lng: z.number({ error: "Longitude is required" }).min(-180).max(180),
+  address: z.string().trim().optional(),
 });

@@ -1,51 +1,80 @@
-import mongoose, { Schema } from "mongoose";
-    import slugify from "slugify";
-    import CustomError from "../../helpers/CustomError";
-import { IStories } from "./stories.interface";
+import mongoose, { Model, Schema } from "mongoose";
+import { IStory, StoryMediaType } from "./stories.interface";
 
-//TODO: customize as needed
+const storyMediaSchema = new Schema(
+  {
+    url: { type: String, required: true },
+    publicId: { type: String, required: true },
+    type: {
+      type: String,
+      enum: Object.values(StoryMediaType),
+      required: true,
+    },
+  },
+  { _id: false },
+);
 
-const storiesSchema = new Schema<IStories>({
-  title: { type: String, required: true },
-  description: { type: String },
-  status: { type: String, default: "active" },
-  isDeleted: { type: Boolean, default: false },
-  slug: { type: String },
-}, { timestamps: true });
-
-// Generate slug before save
-storiesSchema.pre("save", async function (next) {
-  if (!this.isModified("title")) return;
-
-  const category = await StoriesModel.findOne({ title: this.title });
-  if (category) {
-    throw new CustomError(400, "Stories already exist");
-  }
-
-  this.slug = slugify(this.title, {
-    lower: true,
-    strict: true,
-    trim: true,
-  });
-});
-
-// Generate slug on update
-storiesSchema.pre("findOneAndUpdate", async function () {
-  const update = this.getUpdate() as any;
-
-  const category = await StoriesModel.findOne({ title: update.title });
-  if (category) {
-    throw new CustomError(400, "Stories already exist");
-  }
-
-  if (update?.title) {
-    update.slug = slugify(update.title, {
-      lower: true,
-      strict: true,
+const storySchema = new Schema<IStory>(
+  {
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+    },
+    media: {
+      type: storyMediaSchema,
+      required: true,
+    },
+    caption: {
+      type: String,
       trim: true,
-    });
-  }
+      maxlength: 200,
+    },
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        required: true,
+      },
+      coordinates: {
+        type: [Number],
+        required: true,
+      },
+      address: String,
+    },
+    geohash: {
+      type: String,
+      required: true,
+      index: true,
+    },
+    viewsCount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    expiresAt: {
+      type: Date,
+      required: true,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
 
-});
+// Geospatial index
+storySchema.index({ location: "2dsphere" });
 
-export const StoriesModel = mongoose.model<IStories>("Stories", storiesSchema);
+// TTL index — auto-delete documents when expiresAt is reached
+storySchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
+
+// Time-based sorting
+storySchema.index({ createdAt: -1 });
+
+// User's own stories
+storySchema.index({ user: 1, createdAt: -1 });
+
+export const storyModel: Model<IStory> = mongoose.model<IStory>(
+  "Story",
+  storySchema,
+);

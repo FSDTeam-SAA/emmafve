@@ -1,23 +1,221 @@
-import { StoriesModel } from "./stories.models";
-import { ICreateStories } from "./stories.interface";
+import { Types } from "mongoose";
+
+import {
+  CreateStoryPayload,
+  GetStoriesQuery,
+  IStory,
+  IStoryMedia,
+  StoryMediaType,
+} from "./stories.interface";
 import CustomError from "../../helpers/CustomError";
-import { uploadCloudinary } from "../../helpers/cloudinary";
+import {
+  CloudinaryResourceType,
+  deleteCloudinary,
+  uploadMediaCloudinary,
+} from "../../helpers/cloudinary";
+import {
+  buildGeoWithinQuery,
+  calculateDistanceKm,
+  Coordinates,
+  encodeGeohash,
+  fromGeoPoint,
+  toGeoPoint,
+} from "../community/shared/geo.utils";
+import { COMMUNITY_CONFIG } from "../community/shared/community.config";
+import { storyModel } from "./stories.models";
+import { paginationHelper } from "../../utils/pagination";
 
-//TODO: customize as needed
-
-const createStories = async (data: ICreateStories, image?: Express.Multer.File) => {
-  const item = await StoriesModel.create(data);
-  if (!item) throw new CustomError(400, "Stories not created");
-
-  if (image) {
-    const uploaded = await uploadCloudinary(image.path);
-    if (uploaded) {
-      item.image = uploaded;
-      await item.save();
-    }
-  }
-
-  return item;
+const getStoryMediaType = (mimetype: string): StoryMediaType => {
+  if (mimetype.startsWith("image/")) return StoryMediaType.IMAGE;
+  if (mimetype.startsWith("video/")) return StoryMediaType.VIDEO;
+  throw new CustomError(
+    400,
+    "Only image or video files are allowed in stories",
+  );
 };
 
-export const storiesService = { createStories };
+const getCloudinaryResourceType = (
+  mediaType: StoryMediaType,
+): CloudinaryResourceType => {
+  return mediaType === StoryMediaType.VIDEO ? "video" : "image";
+};
+
+const uploadStoryMedia = async (
+  file: Express.Multer.File,
+): Promise<IStoryMedia> => {
+  const mediaType = getStoryMediaType(file.mimetype);
+  const resourceType = getCloudinaryResourceType(mediaType);
+
+  const result = await uploadMediaCloudinary(file.path, resourceType);
+
+  return {
+    url: result.secure_url,
+    publicId: result.public_id,
+    type: mediaType,
+  };
+};
+
+const createStory = async (
+  payload: CreateStoryPayload,
+  file: Express.Multer.File,
+): Promise<IStory> => {
+  if (!file) {
+    throw new CustomError(400, "Media file is required for story");
+  }
+
+  const { user, caption, lat, lng, address } = payload;
+
+  const location = toGeoPoint(lat, lng, address);
+  const geohash = encodeGeohash(lat, lng);
+
+  const media = await uploadStoryMedia(file);
+
+  const expiresAt = new Date(
+    Date.now() + COMMUNITY_CONFIG.STORY_EXPIRE_HOURS * 60 * 60 * 1000,
+  );
+
+  try {
+    const story = await storyModel.create({
+      user,
+      media,
+      caption,
+      location,
+      geohash,
+      expiresAt,
+    });
+
+    return story;
+  } catch (error) {
+    // Rollback — delete uploaded media if DB save fails
+    const resourceType = getCloudinaryResourceType(media.type);
+    await deleteCloudinary(media.publicId, resourceType).catch(() => null);
+    throw error;
+  }
+};
+
+const getLocalStories = async (query: GetStoriesQuery) => {
+  const { lat, lng, radiusKm, page, limit } = query;
+  const pagination = paginationHelper(String(page), String(limit));
+
+  const geoFilter = buildGeoWithinQuery(
+    lat as number,
+    lng as number,
+    radiusKm!,
+  );
+
+  // Only fetch non-expired stories (TTL should handle this, but safety check)
+  const filter = {
+    ...geoFilter,
+    expiresAt: { $gt: new Date() },
+  };
+
+  const [stories, total] = await Promise.all([
+    storyModel
+      .find(filter)
+      .populate("user", "firstName lastName profileImage")
+      .sort({ createdAt: -1 })
+      .skip(pagination.skip)
+      .limit(pagination.limit)
+      .lean(),
+    storyModel.countDocuments(filter),
+  ]);
+
+  const userCoords = { lat, lng };
+  const storiesWithDistance = stories.map((story) => {
+    const storyCoords = fromGeoPoint(story.location);
+    const distanceKm = calculateDistanceKm(
+      userCoords as Coordinates,
+      storyCoords,
+    );
+    return { ...story, distanceKm: Number(distanceKm.toFixed(2)) };
+  });
+
+  return {
+    stories: storiesWithDistance,
+    meta: {
+      page: pagination.page,
+      limit: pagination.limit,
+      total,
+      totalPages: Math.ceil(total / pagination.limit),
+    },
+  };
+};
+
+const getUserStories = async (userId: string) => {
+  if (!Types.ObjectId.isValid(userId)) {
+    throw new CustomError(400, "Invalid user ID");
+  }
+
+  const stories = await storyModel
+    .find({
+      user: userId,
+      expiresAt: { $gt: new Date() },
+    })
+    .populate("user", "firstName lastName profileImage")
+    .sort({ createdAt: -1 })
+    .lean();
+
+  return stories;
+};
+
+const getStoryById = async (storyId: string): Promise<IStory> => {
+  if (!Types.ObjectId.isValid(storyId)) {
+    throw new CustomError(400, "Invalid story ID");
+  }
+
+  const story = await storyModel
+    .findOne({
+      _id: storyId,
+      expiresAt: { $gt: new Date() },
+    })
+    .populate("user", "firstName lastName profileImage");
+
+  if (!story) {
+    throw new CustomError(404, "Story not found or expired");
+  }
+
+  return story;
+};
+
+const incrementView = async (storyId: string): Promise<void> => {
+  if (!Types.ObjectId.isValid(storyId)) {
+    throw new CustomError(400, "Invalid story ID");
+  }
+
+  await storyModel.findByIdAndUpdate(storyId, {
+    $inc: { viewsCount: 1 },
+  });
+};
+
+const deleteStory = async (
+  storyId: string,
+  userId: Types.ObjectId,
+): Promise<void> => {
+  if (!Types.ObjectId.isValid(storyId)) {
+    throw new CustomError(400, "Invalid story ID");
+  }
+
+  const story = await storyModel.findById(storyId);
+
+  if (!story) {
+    throw new CustomError(404, "Story not found");
+  }
+
+  if (story.user?.toString() !== userId.toString()) {
+    throw new CustomError(403, "You can only delete your own stories");
+  }
+
+  const resourceType = getCloudinaryResourceType(story.media.type);
+  await deleteCloudinary(story.media.publicId, resourceType).catch(() => null);
+
+  await storyModel.findByIdAndDelete(storyId);
+};
+
+export const storyService = {
+  createStory,
+  getLocalStories,
+  getUserStories,
+  getStoryById,
+  incrementView,
+  deleteStory,
+};
