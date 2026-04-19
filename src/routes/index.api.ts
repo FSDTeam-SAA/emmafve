@@ -17,6 +17,7 @@ import { paypalWebhookHandler } from "../webHook/paypal.webhook";
 import { chatRoute } from "../modules/community/chat/chat.routes";
 import { chatLikeRoute } from "../modules/community/chatlike/chatlike.routes";
 import { solidarityRoute } from "../modules/solidarity/solidarity.route";
+import { storyRoute } from "../modules/stories/stories.routes";
 
 router.use("/user", userRoute);
 router.use("/auth", authRoute);
@@ -40,5 +41,6 @@ router.use("/notifications", notificationRoute);
 router.use("/community/chat", chatRoute);
 router.use("/community/chat", chatLikeRoute);
 router.use("/solidarity", solidarityRoute);
+router.use("/community/stories", storyRoute);
 
 export default router;

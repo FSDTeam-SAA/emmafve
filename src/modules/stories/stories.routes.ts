@@ -1,13 +1,32 @@
 import express from "express";
-import { createStories } from "./stories.controller";
-import { validateRequest } from "../../middleware/validateRequest.middleware";
-import { createStoriesSchema } from "./stories.validation";
-import { uploadSingle } from "../../middleware/multer.midleware";
+import { authGuard } from "../../middleware/auth.middleware";
+import { uploadMediaArray } from "../../middleware/multer.midleware";
+import { storyController } from "./stories.controller";
 
-const router = express.Router();
+export const storyRoute = express.Router();
 
-//TODO: customize as needed
+// Use uploadMediaArray with maxCount=1 (since we only accept 1 media per story)
+// Extract single file in controller
+storyRoute.post(
+  "/",
+  authGuard,
+  (req, res, next) => {
+    uploadMediaArray("media", 1)(req, res, (err) => {
+      if (err) return next(err);
+      // Convert array to single file for convenience
+      if (Array.isArray(req.files) && req.files.length > 0) {
+        req.file = req.files[0];
+      }
+      next();
+    });
+  },
+  storyController.createStory,
+);
 
-//router.post("/create-stories", uploadSingle("image"), validateRequest(createStoriesSchema), createStories);
+storyRoute.get("/local", authGuard, storyController.getLocalStories);
 
-export default router;
+storyRoute.get("/user/:userId", authGuard, storyController.getUserStories);
+
+storyRoute.get("/:id", authGuard, storyController.getStoryById);
+
+storyRoute.delete("/:id", authGuard, storyController.deleteStory);
