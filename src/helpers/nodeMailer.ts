@@ -27,14 +27,13 @@ export const mailer = async ({
   template,
   email,
 }: MailerOptions): Promise<void> => {
-  // Fail fast if credentials are not configured
   if (!config.mailer.hostMail || !config.mailer.appPassword) {
     throw new CustomError(501, "Mail service not configured. HOST_MAIL or APP_PASSWORD is missing.");
   }
 
   try {
     await transporter.sendMail({
-      from: `"SwipeLang" <${config.mailer.hostMail}>`,
+      from: `${config.email.appName} <${config.mailer.hostMail}>`,
       to: email,
       subject,
       html: template,

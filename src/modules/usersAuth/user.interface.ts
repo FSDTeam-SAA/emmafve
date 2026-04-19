@@ -9,6 +9,12 @@ export enum role {
   PARTNERS = "partners",
 }
 
+export enum authProvider {
+  GOOGLE = "google",
+  APPLE = "apple",
+  LOCAL = "local",
+}
+
 
 
 export enum status {
@@ -26,6 +32,7 @@ export interface IUser extends Document {
   lastName: string;
   email: string;
   phone: string;
+  provider: authProvider;
   password?: string;
   role: string;
   profession: string;

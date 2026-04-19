@@ -3,7 +3,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import CustomError from "../../helpers/CustomError";
 import config from "../../config";
-import { IUser, role, status, } from "./user.interface";
+import { IUser, role, status, authProvider } from "./user.interface";
 
 
 const userSchema = new Schema<IUser>(
@@ -59,6 +59,11 @@ const userSchema = new Schema<IUser>(
       enum: Object.values(role),
       default: role.USER,
     },
+    provider: {
+      type: String,
+      enum: Object.values(authProvider),
+      default: authProvider.LOCAL,
+    },
     profileImage: {
       public_id: String,
       secure_url: String,
@@ -74,17 +79,13 @@ const userSchema = new Schema<IUser>(
       required: true,
       default: false,
     },
-
     verificationOtp: {
       type: String,
       required: false,
     },
-    //! *** Delete user from database after 2 minutes if not verified ***
     verificationOtpExpire: {
       type: Date,
-      // index: { expires: 0 },
-    },
-    passwordResetToken: {
+    },    passwordResetToken: {
       type: String,
     },
     passwordResetExpire: {

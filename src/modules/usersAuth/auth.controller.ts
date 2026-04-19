@@ -178,3 +178,12 @@ export const appleLogin = asyncHandler(async (req, res) => {
     refreshToken,
   });
 });
+
+//: resend verification otp
+export const resendVerificationOtp = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+  await authService.resendVerificationOtp(email);
+  ApiResponse.sendSuccess(res, 200, "Verification otp sent to your email", {
+    email,
+  });
+});

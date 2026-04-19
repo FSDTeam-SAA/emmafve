@@ -152,36 +152,6 @@ export const forgotPasswordOtpTemplate = (
 `;
 };
 
-export const accountVerificationOtpEmailTemplate = (name: string, otp: string): string => {
-  return `
-<!DOCTYPE html>
-<html>
-<body style="font-family: Arial, sans-serif; background:#f4f6f8; padding:40px;">
-  <div style="max-width:600px; margin:auto; background:#fff; padding:30px; border-radius:8px;">
-    <h2 style="color:#2563eb; text-align:center;">Account Verification OTP</h2>
-
-    <p>Hi <strong>${name}</strong>,</p>
-
-    <p>Welcome to SwipeLang! Please use the OTP below to verify your account:</p>
-
-    <div style="text-align:center; margin:30px 0;">
-      <span style="font-size:28px; font-weight:bold; color:#2563eb; letter-spacing:2px;">
-        ${otp}
-      </span>
-    </div>
-
-    <p style="color:#dc2626; font-weight:600;">
-      This OTP is valid for 1 minute only.
-    </p>
-
-    <p>If you did not create this account, please ignore this email.</p>
-
-    <p>— SwipeLang Team</p>
-  </div>
-</body>
-</html>
-`;
-};
 export const otpEmailTemplate = (name: string, otp: string): string => {
   return `
 <!DOCTYPE html>
@@ -208,6 +178,114 @@ export const otpEmailTemplate = (name: string, otp: string): string => {
 
     <p>— SwipeLang Team</p>
   </div>
+</body>
+</html>
+`;
+};
+
+
+//account verification otp template
+export const accountVerificationOtpEmailTemplate = (name: string, otp: string): string => {
+  return `
+<!DOCTYPE html>
+<html>
+<body style="margin:0; padding:0; background-color:#f3f4f6; font-family: 'Segoe UI', Roboto, Arial, sans-serif;">
+
+  <table width="100%" cellpadding="0" cellspacing="0" style="padding:40px 0;">
+    <tr>
+      <td align="center">
+
+        <table width="100%" cellpadding="0" cellspacing="0" style="max-width:600px; background:#ffffff; border-radius:12px; padding:40px; box-shadow:0 10px 25px rgba(0,0,0,0.05);">
+
+          <!-- Header -->
+          <tr>
+            <td align="center">
+              <h2 style="margin:0; color:#2563eb; font-size:24px; font-weight:700;">
+                Verify Your Account
+              </h2>
+              <p style="margin:8px 0 0; color:#6b7280; font-size:14px;">
+                Secure your account with the OTP below
+              </p>
+            </td>
+          </tr>
+
+          <!-- Spacer -->
+          <tr><td height="30"></td></tr>
+
+          <!-- Greeting -->
+          <tr>
+            <td style="color:#111827; font-size:16px;">
+              Hi <strong>${name}</strong>,
+            </td>
+          </tr>
+
+          <tr><td height="15"></td></tr>
+
+          <!-- Message -->
+          <tr>
+            <td style="color:#374151; font-size:15px; line-height:1.6;">
+              Welcome to <strong>HESTEKA</strong> 🎉<br/>
+              Use the One-Time Password (OTP) below to complete your account verification.
+            </td>
+          </tr>
+
+          <!-- OTP Box -->
+          <tr>
+            <td align="center" style="padding:30px 0;">
+              <div style="
+                display:inline-block;
+                padding:16px 28px;
+                background:#eff6ff;
+                border:1px dashed #2563eb;
+                border-radius:10px;
+                font-size:30px;
+                font-weight:700;
+                letter-spacing:6px;
+                color:#2563eb;
+              ">
+                ${otp}
+              </div>
+            </td>
+          </tr>
+
+          <!-- Expiry Notice -->
+          <tr>
+            <td align="center" style="color:#dc2626; font-size:14px; font-weight:600;">
+              ⏳ This OTP is valid for 10 minutes only
+            </td>
+          </tr>
+
+          <tr><td height="25"></td></tr>
+
+          <!-- Footer Text -->
+          <tr>
+            <td style="color:#6b7280; font-size:14px; line-height:1.6;">
+              If you didn’t create this account, you can safely ignore this email.
+            </td>
+          </tr>
+
+          <tr><td height="30"></td></tr>
+
+          <!-- Divider -->
+          <tr>
+            <td style="border-top:1px solid #e5e7eb;"></td>
+          </tr>
+
+          <tr><td height="15"></td></tr>
+
+          <!-- Footer -->
+          <tr>
+            <td align="center" style="color:#9ca3af; font-size:13px;">
+              © ${new Date().getFullYear()} HESTEKA. All rights reserved.
+            </td>
+          </tr>
+
+        </table>
+
+      </td>
+    </tr>
+  </table>
+
 </body>
 </html>
 `;
