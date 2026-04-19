@@ -14,8 +14,11 @@ import { paymentRoute } from "../modules/payment/payment.routes";
 import { donationRoute } from "../modules/donation/donation.routes";
 import { notificationRoute } from "../modules/notifications/notification.route";
 import { paypalWebhookHandler } from "../webHook/paypal.webhook";
+import { chatRoute } from "../modules/community/chat/chat.routes";
+import { chatLikeRoute } from "../modules/community/chatlike/chatlike.routes";
 import { solidarityRoute } from "../modules/solidarity/solidarity.route";
 import { rewardRoute } from "../modules/rewards/reward.route";
+import { storyRoute } from "../modules/stories/stories.routes";
 
 router.use("/user", userRoute);
 router.use("/auth", authRoute);
@@ -36,7 +39,10 @@ router.post("/webhook/paypal", paypalWebhookHandler);
 router.use("/payments", paymentRoute);
 router.use("/donations", donationRoute);
 router.use("/notifications", notificationRoute);
+router.use("/community/chat", chatRoute);
+router.use("/community/chat", chatLikeRoute);
 router.use("/solidarity", solidarityRoute);
 router.use("/rewards", rewardRoute);
+router.use("/community/stories", storyRoute);
 
 export default router;
