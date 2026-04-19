@@ -85,11 +85,6 @@ const userSchema = new Schema<IUser>(
     },
     verificationOtpExpire: {
       type: Date,
-    },    passwordResetToken: {
-      type: String,
-    },
-    passwordResetExpire: {
-      type: Date,
     },
     refreshToken: {
       type: String,
@@ -207,7 +202,7 @@ userSchema.methods.createAccessToken = function () {
           ? "1d"
           : this.rememberMe
             ? "3d"
-            : "10m",
+            : (config.jwt.accessTokenExpires as any),
     },
   );
 };

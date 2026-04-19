@@ -147,6 +147,13 @@ export const authService = {
     const user = await userModel.findOne({ email: email });
     if (!user) throw new CustomError(400, "User not found");
 
+    if (user.provider !== authProvider.LOCAL) {
+      throw new CustomError(
+        400,
+        `Password reset is not available for this account. Please login using your social account.`,
+      );
+    }
+
     if (user.status !== status.ACTIVE) {
       const message =
         user.status === status.PENDING
@@ -189,6 +196,7 @@ export const authService = {
 
     user.isVerified = true;
     user.resetPassword.token = user.generateResetPasswordToken();
+    user.resetPassword.tokenExpire = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     user.resetPassword.otp = null;
     user.resetPassword.otpExpire = null;
     await user.save();
@@ -216,6 +224,7 @@ export const authService = {
 
     user.password = password;
     user.resetPassword.token = null;
+    user.resetPassword.tokenExpire = null;
     await user.save();
 
     return true;
