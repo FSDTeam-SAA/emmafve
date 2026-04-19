@@ -71,7 +71,15 @@ export const globalErrorHandler = (
     } else if ((error as any).code === 11000) {
       const key = Object.keys((error as any).keyValue)[0];
       const value = (error as any).keyValue[key as string];
-      err = new CustomError(400, `Duplicate field value: ${value}`, { field: key, value });
+      let message = `Duplicate field value: ${value}`;
+
+      if (key === "phone") {
+        message = "Number already use , try with another";
+      } else if (key === "email") {
+        message = "Email already use , try with another";
+      }
+
+      err = new CustomError(400, message, { field: key, value });
     } else if (error.name === "CastError") {
       const castError = error as mongoose.Error.CastError;
       err = new CustomError(400, `Invalid ${castError.path}: ${castError.value}`, { field: castError.path, value: castError.value });
