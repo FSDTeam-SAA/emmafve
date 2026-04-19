@@ -2,11 +2,11 @@ import { userModel } from "./user.models";
 import jwt from "jsonwebtoken";
 import CustomError from "../../helpers/CustomError";
 import config from "../../config";
-import { IUser, role, status } from "./user.interface";
+import { IUser, role, status, authProvider } from "./user.interface";
 import { emailValidator } from "../../helpers/emailValidator";
 import { generateOTP } from "../../utils/otpGenerator";
 import { mailer } from "../../helpers/nodeMailer";
-import { otpEmailTemplate } from "../../tempaletes/auth.templates";
+import { verificationOtpEmailTemplate, forgotPasswordOtpEmailTemplate } from "../../tempaletes/auth.templates";
 import { OAuth2Client } from "google-auth-library";
 import appleSignin from "apple-signin-auth";
 
@@ -35,15 +35,16 @@ export const authService = {
     const user = await userModel.create({
       ...payload,
       role: role,
+      provider: authProvider.LOCAL,
       verificationOtp: otp,
-      verificationOtpExpire: new Date(Date.now() + 2 * 60 * 1000),
+      verificationOtpExpire: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
     });
 
     try {
       await mailer({
         email: user.email,
-        subject: "Verify your account - OTP",
-        template: otpEmailTemplate(user.firstName, otp),
+        subject: "Your HESTEKA verification code",
+        template: verificationOtpEmailTemplate(user.firstName, otp),
       });
     } catch (error) {
       console.error("[Auth] Failed to send verification email:", error);
@@ -78,20 +79,8 @@ export const authService = {
       company,
       role: role.PARTNERS,
       status: status.PENDING,
-      verificationOtp: otp,
-      verificationOtpExpire: new Date(Date.now() + 2 * 60 * 1000),
+      provider: authProvider.LOCAL,
     });
-
-    try {
-      await mailer({
-        email: user.email,
-        subject: "Verify your partner account - OTP",
-        template: otpEmailTemplate(user.firstName, otp),
-      });
-    } catch (error) {
-      console.error("[Auth] Failed to send partner verification email:", error);
-    }
-
     return user;
   },
 
@@ -103,7 +92,7 @@ export const authService = {
     if (!user.verificationOtp) throw new CustomError(400, "OTP not found");
     if (user.verificationOtp !== otp) throw new CustomError(400, "Invalid OTP");
     if (!user.verificationOtpExpire || user.verificationOtpExpire < new Date()) {
-      throw new CustomError(400, "OTP has been expired");
+      throw new CustomError(400, "OTP has been expired. Please resend a new OTP.");
     }
 
     user.isVerified = true;
@@ -118,7 +107,13 @@ export const authService = {
     const user = await userModel.findOne({ email: email }).select("+password");
     if (!user) throw new CustomError(400, "user not found");
     if (user.status !== status.ACTIVE) {
-      throw new CustomError(403, `Your account is ${user.status}. Access denied.`);
+      const message =
+        user.status === status.PENDING
+          ? "Your account is pending for admin approval."
+          : user.status === status.REJECT
+            ? "Account is rejected need to admin aproval"
+            : `Your account is ${user.status}. Access denied.`;
+      throw new CustomError(403, message);
     }
     if (!user.password) {
       throw new CustomError(400, "Password login is not available for this account");
@@ -152,8 +147,21 @@ export const authService = {
     const user = await userModel.findOne({ email: email });
     if (!user) throw new CustomError(400, "User not found");
 
+    if (user.provider !== authProvider.LOCAL) {
+      throw new CustomError(
+        400,
+        `Password reset is not available for this account. Please login using your social account.`,
+      );
+    }
+
     if (user.status !== status.ACTIVE) {
-      throw new CustomError(403, `Your account is ${user.status}. Access denied.`);
+      const message =
+        user.status === status.PENDING
+          ? "Your account is pending for admin approval."
+          : user.status === status.REJECT
+            ? "Your account is rejected. Access denied."
+            : `Your account is ${user.status}. Access denied.`;
+      throw new CustomError(403, message);
     }
 
     const otp = generateOTP();
@@ -161,7 +169,7 @@ export const authService = {
     await mailer({
       email: user.email,
       subject: "Reset your password - OTP",
-      template: otpEmailTemplate(user.firstName, otp),
+      template: forgotPasswordOtpEmailTemplate(user.firstName, otp),
     });
 
     user.resetPassword.otp = otp;
@@ -188,6 +196,7 @@ export const authService = {
 
     user.isVerified = true;
     user.resetPassword.token = user.generateResetPasswordToken();
+    user.resetPassword.tokenExpire = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
     user.resetPassword.otp = null;
     user.resetPassword.otpExpire = null;
     await user.save();
@@ -215,6 +224,7 @@ export const authService = {
 
     user.password = password;
     user.resetPassword.token = null;
+    user.resetPassword.tokenExpire = null;
     await user.save();
 
     return true;
@@ -235,7 +245,13 @@ export const authService = {
     }
 
     if (user.status !== status.ACTIVE) {
-      throw new CustomError(403, `Your account is ${user.status}. Access denied.`);
+      const message =
+        user.status === status.PENDING
+          ? "Your account is pending for admin approval."
+          : user.status === status.REJECT
+            ? "Your account is rejected. Access denied."
+            : `Your account is ${user.status}. Access denied.`;
+      throw new CustomError(403, message);
     }
 
     const accessToken = user.createAccessToken();
@@ -269,11 +285,24 @@ export const authService = {
         isVerified: true, // Google emails are already verified
         address: "Social Login", // Default for social
         company: "Social Login", // Default for social
+        provider: authProvider.GOOGLE,
         phone: `google-${payload.sub}`, // Unique placeholder for social users
       });
+    } else {
+      // Update provider if not set (optional migration)
+      if (!user.provider) {
+        user.provider = authProvider.GOOGLE;
+        await user.save();
+      }
     }
     if (user.status !== status.ACTIVE) {
-      throw new CustomError(403, `Your account is ${user.status}. Access denied.`);
+      const message =
+        user.status === status.PENDING
+          ? "Your account is pending for admin approval."
+          : user.status === status.REJECT
+            ? "Your account is rejected. Access denied."
+            : `Your account is ${user.status}. Access denied.`;
+      throw new CustomError(403, message);
     }
 
     const accessToken = user.createAccessToken();
@@ -305,11 +334,23 @@ export const authService = {
         isVerified: true,
         address: "Social Login",
         company: "Social Login",
+        provider: authProvider.APPLE,
         phone: `apple-${appleId}`,
       });
+    } else {
+      if (!user.provider) {
+        user.provider = authProvider.APPLE;
+        await user.save();
+      }
     }
     if (user.status !== status.ACTIVE) {
-      throw new CustomError(403, `Your account is ${user.status}. Access denied.`);
+      const message =
+        user.status === status.PENDING
+          ? "Your account is pending for admin approval."
+          : user.status === status.REJECT
+            ? "Your account is rejected. Access denied."
+            : `Your account is ${user.status}. Access denied.`;
+      throw new CustomError(403, message);
     }
 
     const accessToken = user.createAccessToken();
@@ -319,5 +360,29 @@ export const authService = {
     await user.save();
 
     return { user, accessToken, refreshToken };
+  },
+
+  //resend verification otp
+  async resendVerificationOtp(email: string) {
+    const user = await userModel.findOne({ email });
+    if (!user) throw new CustomError(400, "User not found");
+    if (user.status !== status.ACTIVE) throw new CustomError(400, "Your account is not active");
+
+    if (user.isVerified) {
+      throw new CustomError(400, "Account is already verified");
+    }
+
+    const otp = generateOTP();
+    user.verificationOtp = otp;
+    user.verificationOtpExpire = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    await mailer({
+      email: user.email,
+      subject: "Your HESTEKA account verification OTP",
+      template: verificationOtpEmailTemplate(user.firstName, otp),
+    });
+
+    await user.save();
+    return user;
   },
 };

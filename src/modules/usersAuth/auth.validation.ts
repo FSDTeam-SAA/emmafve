@@ -92,3 +92,9 @@ export const resetPasswordSchema = z
     message: "Passwords do not match",
     path: ["confirmPassword"],
   });
+
+export const resendOtpSchema = z
+  .object({
+    email: z.string().email("Invalid email address"),
+  })
+  .strict();

@@ -11,6 +11,7 @@ import {
   generateAccessToken,
   googleLogin,
   appleLogin,
+  resendVerificationOtp,
 } from "./auth.controller";
 import { authGuard } from "../../middleware/auth.middleware";
 import { validateRequest } from "../../middleware/validateRequest.middleware";
@@ -20,6 +21,7 @@ import {
   registerPartnerSchema,
   registerUserSchema,
   resetPasswordSchema,
+  resendOtpSchema,
   verifyAccountSchema,
   verifyOtpSchema,
 } from "./auth.validation";
@@ -68,6 +70,12 @@ router
 //: Social login routes
 router.post("/google-login", googleLogin);
 router.post("/apple-login", appleLogin);
+
+router.post(
+  "/account-verification-otp",
+  validateRequest(resendOtpSchema),
+  resendVerificationOtp,
+);
 
 //re generate access token
 router.post("/generate-access-token", generateAccessToken);

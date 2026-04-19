@@ -9,6 +9,12 @@ export enum role {
   PARTNERS = "partners",
 }
 
+export enum authProvider {
+  GOOGLE = "google",
+  APPLE = "apple",
+  LOCAL = "local",
+}
+
 
 
 export enum status {
@@ -18,6 +24,7 @@ export enum status {
   // DELETED = "deleted",
   BANNED = "banned",
   PENDING = "pending",
+  REJECT = "reject",
 }
 
 export interface IUser extends Document {
@@ -25,6 +32,7 @@ export interface IUser extends Document {
   lastName: string;
   email: string;
   phone: string;
+  provider: authProvider;
   password?: string;
   role: string;
   profession: string;
@@ -45,8 +53,6 @@ export interface IUser extends Document {
   isVerified: boolean;
   verificationOtp: string | null;
   verificationOtpExpire: Date | null;
-  passwordResetToken: string;
-  passwordResetExpire: Date | null;
   refreshToken: string | null;
   resetPassword: {
     otp: string | null;

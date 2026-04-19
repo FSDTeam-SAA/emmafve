@@ -55,6 +55,7 @@ const config = {
   email: {
     hostMail: process.env.HOST_MAIL as string,
     appPassword: process.env.APP_PASSWORD as string,
+    appName: process.env.APP_NAME as string,
   },
 
   /* ================= Stripe ================= */
