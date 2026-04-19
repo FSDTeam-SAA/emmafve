@@ -19,6 +19,8 @@ import { chatLikeRoute } from "../modules/community/chatlike/chatlike.routes";
 import { solidarityRoute } from "../modules/solidarity/solidarity.route";
 import { rewardRoute } from "../modules/rewards/reward.route";
 import { storyRoute } from "../modules/stories/stories.routes";
+import { donationProofRoute } from "../modules/donationProofs/donationProof.route";
+import { adminRoute } from "../modules/admin/admin.route";
 
 router.use("/user", userRoute);
 router.use("/auth", authRoute);
@@ -29,11 +31,7 @@ router.use("/local-missions", localMissionRoute);
 router.use("/points", pointRoute);
 router.use("/contacts", contactRoute);
 // Webhook — raw body লাগবে তাই আলাদা
-router.post(
-  "/webhook/stripe",
-
-  stripeWebhookHandler,
-);
+router.post("/webhook/stripe",stripeWebhookHandler);
 router.post("/webhook/paypal", paypalWebhookHandler);
 
 router.use("/payments", paymentRoute);
@@ -44,5 +42,7 @@ router.use("/community/chat", chatLikeRoute);
 router.use("/solidarity", solidarityRoute);
 router.use("/rewards", rewardRoute);
 router.use("/community/stories", storyRoute);
+router.use("/donation-proofs", donationProofRoute);
+router.use("/admin", adminRoute);
 
 export default router;

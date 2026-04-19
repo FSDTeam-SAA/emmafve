@@ -9,6 +9,7 @@ export enum PointTransactionSource {
   LOCAL_MISSION = "local_mission",
   REDEEM = "redeem",
   REWARD_ITEM = "reward_item",
+  PHYSICAL_DONATION = "physical_donation",
 }
 
 export interface IPointTransaction extends Document {

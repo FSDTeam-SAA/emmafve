@@ -4,6 +4,8 @@ import {
   getmyprofile,
   getSingleUser,
   updateStatus,
+  approvePartner,
+  rejectPartner,
   updatePassword,
   updateUser,
   updateFcmToken,
@@ -41,6 +43,20 @@ router.patch(
   allowRole("admin"),
   validateRequest(updateStatusSchema),
   updateStatus,
+);
+
+router.patch(
+  "/approve-partner/:partnerId",
+  authGuard,
+  allowRole("admin"),
+  approvePartner,
+);
+
+router.patch(
+  "/reject-partner/:partnerId",
+  authGuard,
+  allowRole("admin"),
+  rejectPartner,
 );
 
 router.patch(

@@ -193,6 +193,30 @@ export const userService = {
     return user;
   },
 
+  // approve partner
+  async approvePartner(partnerId: string) {
+    const user = await userModel.findOneAndUpdate(
+      { _id: partnerId, role: role.PARTNERS },
+      { status: status.ACTIVE },
+      { returnDocument: "after" }
+    ).select("-password -passwordResetToken -passwordResetExpire -refreshToken -__v -createdAt -updatedAt -emailVerifiedAt -emailVerifiedOtp -verificationOtp -isDeleted");
+
+    if (!user) throw new CustomError(400, "Partner not found");
+    return user;
+  },
+
+  // reject partner
+  async rejectPartner(partnerId: string) {
+    const user = await userModel.findOneAndUpdate(
+      { _id: partnerId, role: role.PARTNERS },
+      { status: status.BLOCKED },
+      { returnDocument: "after" }
+    ).select("-password -passwordResetToken -passwordResetExpire -refreshToken -__v -createdAt -updatedAt -emailVerifiedAt -emailVerifiedOtp -verificationOtp -isDeleted");
+
+    if (!user) throw new CustomError(400, "Partner not found");
+    return user;
+  },
+
   //update password
   async updatePassword(req: any) {
     const { email } = req?.user as { email: string };
