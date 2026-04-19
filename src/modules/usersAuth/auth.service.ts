@@ -6,7 +6,7 @@ import { IUser, role, status, authProvider } from "./user.interface";
 import { emailValidator } from "../../helpers/emailValidator";
 import { generateOTP } from "../../utils/otpGenerator";
 import { mailer } from "../../helpers/nodeMailer";
-import { accountVerificationOtpEmailTemplate, otpEmailTemplate } from "../../tempaletes/auth.templates";
+import { verificationOtpEmailTemplate, forgotPasswordOtpEmailTemplate } from "../../tempaletes/auth.templates";
 import { OAuth2Client } from "google-auth-library";
 import appleSignin from "apple-signin-auth";
 
@@ -43,8 +43,8 @@ export const authService = {
     try {
       await mailer({
         email: user.email,
-        subject: "Verify your account - OTP",
-        template: otpEmailTemplate(user.firstName, otp),
+        subject: "Your HESTEKA verification code",
+        template: verificationOtpEmailTemplate(user.firstName, otp),
       });
     } catch (error) {
       console.error("[Auth] Failed to send verification email:", error);
@@ -162,7 +162,7 @@ export const authService = {
     await mailer({
       email: user.email,
       subject: "Reset your password - OTP",
-      template: otpEmailTemplate(user.firstName, otp),
+      template: forgotPasswordOtpEmailTemplate(user.firstName, otp),
     });
 
     user.resetPassword.otp = otp;
@@ -369,8 +369,8 @@ export const authService = {
 
     await mailer({
       email: user.email,
-      subject: "Verify your account - OTP",
-      template: accountVerificationOtpEmailTemplate(user.firstName, otp),
+      subject: "Your HESTEKA account verification OTP",
+      template: verificationOtpEmailTemplate(user.firstName, otp),
     });
 
     await user.save();
