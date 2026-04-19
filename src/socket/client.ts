@@ -2,7 +2,7 @@ import chalk from "chalk";
 import { io as socketIoClient } from "socket.io-client";
 
 const SERVER_URL = "http://localhost:5000";
-const USER_ID = "69e009fcc8ebc089e5e261f2"; //  user ID
+const USER_ID = "69e53c744dbed95e8eeb2831"; //  user ID
 
 const socket = socketIoClient(SERVER_URL, {
   query: { userId: USER_ID },
@@ -14,7 +14,7 @@ socket.on("connect", () => {
   console.log(`🎧 Listening silently for notifications for user: ${USER_ID}`);
 
   console.log(chalk.magenta("Solve by guru"));
-  
+
 });
 
 // Emmafve Specific Notification Catcher

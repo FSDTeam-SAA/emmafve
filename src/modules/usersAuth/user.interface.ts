@@ -18,6 +18,7 @@ export enum status {
   // DELETED = "deleted",
   BANNED = "banned",
   PENDING = "pending",
+  REJECT = "reject",
 }
 
 export interface IUser extends Document {

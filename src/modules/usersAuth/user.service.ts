@@ -4,6 +4,10 @@ import CustomError from "../../helpers/CustomError";
 import { deleteCloudinary, uploadCloudinary } from "../../helpers/cloudinary";
 import { role, status, UpdateUserPayload } from "./user.interface";
 import { paginationHelper } from "../../utils/pagination";
+import { notificationService } from "../notifications/notification.service";
+import { NotificationType } from "../notifications/notification.interface";
+import { mailer } from "../../helpers/nodeMailer";
+import { partnerApprovalEmailTemplate, partnerRejectionEmailTemplate } from "../../tempaletes/partner.templates";
 
 export const userService = {
   //get all users
@@ -195,25 +199,69 @@ export const userService = {
 
   // approve partner
   async approvePartner(partnerId: string) {
+    const partner = await userModel.findOne({ _id: partnerId, role: role.PARTNERS });
+    
+    if (!partner) {
+      throw new CustomError(404, "Partner account not found.");
+    }
+
+    if (partner.status === status.ACTIVE) {
+      throw new CustomError(400, "Partner is already approved.");
+    }
+
     const user = await userModel.findOneAndUpdate(
-      { _id: partnerId, role: role.PARTNERS },
+      { _id: partnerId, role: role.PARTNERS, status: { $in: [status.PENDING, status.REJECT] } },
       { status: status.ACTIVE },
       { returnDocument: "after" }
     ).select("-password -passwordResetToken -passwordResetExpire -refreshToken -__v -createdAt -updatedAt -emailVerifiedAt -emailVerifiedOtp -verificationOtp -isDeleted");
 
-    if (!user) throw new CustomError(400, "Partner not found");
+    if (!user) {
+      throw new CustomError(400, "Failed to approve partner. They may have been processed by another admin.");
+    }
+
+    // Send Approval Email
+    mailer({
+      email: user.email,
+      subject: "Partner Account Approved - HESTEKA",
+      template: partnerApprovalEmailTemplate(user.firstName),
+    }).catch(err => console.error("Email Error:", err));
+
     return user;
   },
 
   // reject partner
   async rejectPartner(partnerId: string) {
+    const partner = await userModel.findOne({ _id: partnerId, role: role.PARTNERS });
+
+    if (!partner) {
+      throw new CustomError(404, "Partner account not found.");
+    }
+
+    if (partner.status === status.ACTIVE) {
+      throw new CustomError(400, "Partner is already approved. Cannot reject an approved partner.");
+    }
+
+    if (partner.status === status.REJECT) {
+      throw new CustomError(400, "Partner is already rejected.");
+    }
+
     const user = await userModel.findOneAndUpdate(
-      { _id: partnerId, role: role.PARTNERS },
-      { status: status.BLOCKED },
+      { _id: partnerId, role: role.PARTNERS, status: status.PENDING },
+      { status: status.REJECT },
       { returnDocument: "after" }
     ).select("-password -passwordResetToken -passwordResetExpire -refreshToken -__v -createdAt -updatedAt -emailVerifiedAt -emailVerifiedOtp -verificationOtp -isDeleted");
 
-    if (!user) throw new CustomError(400, "Partner not found");
+    if (!user) {
+      throw new CustomError(400, "Failed to reject partner. They may have been processed by another admin.");
+    }
+
+    // Send Rejection Email
+    mailer({
+      email: user.email,
+      subject: "Partner Account Rejected - HESTEKA",
+      template: partnerRejectionEmailTemplate(user.firstName),
+    }).catch(err => console.error("Email Error:", err));
+
     return user;
   },
 

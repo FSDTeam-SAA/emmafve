@@ -81,17 +81,6 @@ export const authService = {
       verificationOtp: otp,
       verificationOtpExpire: new Date(Date.now() + 2 * 60 * 1000),
     });
-
-    try {
-      await mailer({
-        email: user.email,
-        subject: "Verify your partner account - OTP",
-        template: otpEmailTemplate(user.firstName, otp),
-      });
-    } catch (error) {
-      console.error("[Auth] Failed to send partner verification email:", error);
-    }
-
     return user;
   },
 
@@ -118,7 +107,13 @@ export const authService = {
     const user = await userModel.findOne({ email: email }).select("+password");
     if (!user) throw new CustomError(400, "user not found");
     if (user.status !== status.ACTIVE) {
-      throw new CustomError(403, `Your account is ${user.status}. Access denied.`);
+      const message =
+        user.status === status.PENDING
+          ? "Your account is pending for admin approval."
+          : user.status === status.REJECT
+            ? "Account is rejected need to admin aproval"
+            : `Your account is ${user.status}. Access denied.`;
+      throw new CustomError(403, message);
     }
     if (!user.password) {
       throw new CustomError(400, "Password login is not available for this account");
@@ -153,7 +148,13 @@ export const authService = {
     if (!user) throw new CustomError(400, "User not found");
 
     if (user.status !== status.ACTIVE) {
-      throw new CustomError(403, `Your account is ${user.status}. Access denied.`);
+      const message =
+        user.status === status.PENDING
+          ? "Your account is pending for admin approval."
+          : user.status === status.REJECT
+            ? "Your account is rejected. Access denied."
+            : `Your account is ${user.status}. Access denied.`;
+      throw new CustomError(403, message);
     }
 
     const otp = generateOTP();
@@ -235,7 +236,13 @@ export const authService = {
     }
 
     if (user.status !== status.ACTIVE) {
-      throw new CustomError(403, `Your account is ${user.status}. Access denied.`);
+      const message =
+        user.status === status.PENDING
+          ? "Your account is pending for admin approval."
+          : user.status === status.REJECT
+            ? "Your account is rejected. Access denied."
+            : `Your account is ${user.status}. Access denied.`;
+      throw new CustomError(403, message);
     }
 
     const accessToken = user.createAccessToken();
@@ -273,7 +280,13 @@ export const authService = {
       });
     }
     if (user.status !== status.ACTIVE) {
-      throw new CustomError(403, `Your account is ${user.status}. Access denied.`);
+      const message =
+        user.status === status.PENDING
+          ? "Your account is pending for admin approval."
+          : user.status === status.REJECT
+            ? "Your account is rejected. Access denied."
+            : `Your account is ${user.status}. Access denied.`;
+      throw new CustomError(403, message);
     }
 
     const accessToken = user.createAccessToken();
@@ -309,7 +322,13 @@ export const authService = {
       });
     }
     if (user.status !== status.ACTIVE) {
-      throw new CustomError(403, `Your account is ${user.status}. Access denied.`);
+      const message =
+        user.status === status.PENDING
+          ? "Your account is pending for admin approval."
+          : user.status === status.REJECT
+            ? "Your account is rejected. Access denied."
+            : `Your account is ${user.status}. Access denied.`;
+      throw new CustomError(403, message);
     }
 
     const accessToken = user.createAccessToken();

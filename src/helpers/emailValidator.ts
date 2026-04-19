@@ -22,6 +22,10 @@ export const emailValidator = (email: string | undefined) => {
     "bellsouth.net",
   ];
 
+  if (process.env.NODE_ENV === "development") {
+    return;
+  }
+
   const domain = email!.split("@")[1];
   if (!allowedDomains.includes(domain!)) {
     throw new Error("Invalid email domain. Allowed domains: " + allowedDomains);

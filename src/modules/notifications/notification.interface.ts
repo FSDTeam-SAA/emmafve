@@ -6,6 +6,7 @@ export enum NotificationType {
   POINTS_EARNED = "points_earned",
   MISSION_CANCELLED = "mission_cancelled",
   SYSTEM = "system",
+  ACCOUNT_UPDATE = "account_update",
 }
 
 export interface INotification extends Document {
