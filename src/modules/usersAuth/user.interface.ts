@@ -48,7 +48,7 @@ export interface IUser extends Document {
     coordinates: number[];
     address?: string;
   };
-  company: string;
+  company?: string;
   pointsBalance: number;
   isVerified: boolean;
   verificationOtp: string | null;

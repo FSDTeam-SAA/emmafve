@@ -7,7 +7,7 @@ export const registerUserSchema = z
     email: z.string().email("Invalid email address"),
     phone: z.string().min(1, "Phone number is required"),
     address: z.string().min(1, "Address is required"),
-    company: z.string().min(1, "Company is required"),
+    company: z.string().optional(),
     password: z
       .string()
       .min(6, "Password must be at least 6 characters")

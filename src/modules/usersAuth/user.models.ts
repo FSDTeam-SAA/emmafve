@@ -32,7 +32,7 @@ const userSchema = new Schema<IUser>(
     },
     company: {
       type: String,
-      required: true,
+      required: false,
     },
     pointsBalance: {
       type: Number,

@@ -66,8 +66,6 @@ const config = {
 
   //redis
   redisUrl: process.env.REDIS_URL,
-  /* ================= Gemini API ================= */
-  geminiApiKey: process.env.GEMINI_API_KEY as string,
 
   /* ================= Frontend ================= */
   frontendUrl: process.env.FRONTEND_URL ?? "http://localhost:3000",
