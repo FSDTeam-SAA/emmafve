@@ -43,6 +43,20 @@ export const updateStatus = asyncHandler(async (req: Request, res: Response) => 
   ApiResponse.sendSuccess(res, 200, "User status updated successfully", result);
 });
 
+//: approve partner
+export const approvePartner = asyncHandler(async (req: Request, res: Response) => {
+  const { partnerId } = req?.params as { partnerId: string };
+  const result = await userService.approvePartner(partnerId);
+  ApiResponse.sendSuccess(res, 200, "Partner approved successfully", result);
+});
+
+//: reject partner
+export const rejectPartner = asyncHandler(async (req: Request, res: Response) => {
+  const { partnerId } = req?.params as { partnerId: string };
+  const result = await userService.rejectPartner(partnerId);
+  ApiResponse.sendSuccess(res, 200, "Partner rejected successfully", result);
+});
+
 //: update password
 export const updatePassword = asyncHandler(async (req: Request, res: Response) => {
   await userService.updatePassword(req);

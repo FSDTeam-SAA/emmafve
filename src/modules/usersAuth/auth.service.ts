@@ -77,6 +77,7 @@ export const authService = {
       ...payload,
       company,
       role: role.PARTNERS,
+      status: status.PENDING,
       verificationOtp: otp,
       verificationOtpExpire: new Date(Date.now() + 2 * 60 * 1000),
     });

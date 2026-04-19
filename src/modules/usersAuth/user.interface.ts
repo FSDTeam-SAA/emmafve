@@ -17,6 +17,7 @@ export enum status {
   BLOCKED = "blocked",
   // DELETED = "deleted",
   BANNED = "banned",
+  PENDING = "pending",
 }
 
 export interface IUser extends Document {
