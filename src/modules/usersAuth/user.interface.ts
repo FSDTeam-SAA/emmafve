@@ -27,6 +27,13 @@ export enum status {
   REJECT = "reject",
 }
 
+export enum updateStatus {
+  ACTIVE = "active",
+  INACTIVE = "inactive",
+  BLOCKED = "blocked",
+  BANNED = "banned"
+}
+
 export interface IUser extends Document {
   firstName: string;
   lastName: string;
@@ -83,4 +90,7 @@ export interface UpdateUserPayload {
   profession?: string;
   selfIntroduction?: string;
   status?: status;
+  latitude?: number;
+  longitude?: number;
+  locationAddress?: string;
 }
