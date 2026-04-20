@@ -1,5 +1,21 @@
 import { z } from "zod";
-import { status } from "./user.interface";
+import { updateStatus } from "./user.interface";
+
+const acceptedStatuses = Object.values(updateStatus);
+const statusSchema = z.enum(acceptedStatuses as [string, ...string[]], {
+  message: `Invalid status. Accepted statuses are: ${acceptedStatuses.join(", ")}`,
+});
+const optionalCoordinate = (fieldName: string, min: number, max: number) =>
+  z.preprocess(
+    (value) => (value === "" || value === undefined ? undefined : value),
+    z.coerce
+      .number({
+        message: `${fieldName} must be a number`,
+      })
+      .min(min, `${fieldName} must be at least ${min}`)
+      .max(max, `${fieldName} must be at most ${max}`)
+      .optional(),
+  );
 
 //update user info schema
 export const updateUserSchema = z
@@ -17,14 +33,21 @@ export const updateUserSchema = z
     profession: z.string().optional(),
     city: z.string().optional(),
     country: z.string().optional(),
-    status: z.enum(Object.values(status) as [string, ...string[]]).optional(),
+    status: statusSchema.optional(),
     image: z.any().optional(),
+    latitude: optionalCoordinate("Latitude", -90, 90),
+    longitude: optionalCoordinate("Longitude", -180, 180),
+    locationAddress: z.string().optional(),
   })
-  .strict();
+  .strict()
+  .refine((data) => (data.latitude === undefined) === (data.longitude === undefined), {
+    message: "Latitude and longitude must be provided together",
+    path: ["coordinates"],
+  });
 
 export const updateStatusSchema = z
   .object({
-    status: z.enum(Object.values(status) as [string, ...string[]]).optional(),
+    status: statusSchema.optional(),
   })
   .strict();
 

@@ -1,5 +1,6 @@
 import express, { NextFunction, Request, Response } from "express";
 import http from "http";
+import path from "path";
 import { initSocket } from "./socket/server";
 import routes from "./routes/index.api";
 import { globalErrorHandler } from "./helpers/globalErrorHandler";
@@ -54,6 +55,7 @@ app.use((req, res, next) => {
   }
 });
 app.use(express.urlencoded({ extended: true }));
+app.use("/stamps", express.static(path.join(process.cwd(), "public", "stamps")));
 
 app.use("/api/v1", routes);
 
