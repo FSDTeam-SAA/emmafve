@@ -17,6 +17,26 @@ interface CloudinaryUploadResult {
 
 export type CloudinaryResourceType = "image" | "video" | "raw" | "auto";
 
+const CLOUDINARY_PROJECT_FOLDER = "hesteka";
+
+const getCloudinaryFolder = (resourceType: CloudinaryResourceType): string => {
+  if (resourceType === "video") return `${CLOUDINARY_PROJECT_FOLDER}/video`;
+  if (resourceType === "raw") return `${CLOUDINARY_PROJECT_FOLDER}/raw`;
+  if (resourceType === "auto") return `${CLOUDINARY_PROJECT_FOLDER}/media`;
+  return `${CLOUDINARY_PROJECT_FOLDER}/image`;
+};
+
+const getPublicId = (cloudinaryPublicId: string): string =>
+  cloudinaryPublicId.split("/").pop() ?? cloudinaryPublicId;
+
+const getDestroyPublicId = (
+  publicId: string,
+  resourceType: CloudinaryResourceType,
+): string => {
+  if (publicId.includes("/")) return publicId;
+  return `${getCloudinaryFolder(resourceType)}/${publicId}`;
+};
+
 // Existing — image upload
 export const uploadCloudinary = async (
   filePath: string,
@@ -28,13 +48,14 @@ export const uploadCloudinary = async (
 
     const cloudinaryResponse = await cloudinary.uploader.upload(filePath, {
       resource_type: "image",
+      folder: getCloudinaryFolder("image"),
       quality: "auto",
     });
 
     fs.unlinkSync(filePath);
 
     return {
-      public_id: cloudinaryResponse.public_id,
+      public_id: getPublicId(cloudinaryResponse.public_id),
       secure_url: cloudinaryResponse.secure_url,
       resource_type: cloudinaryResponse.resource_type,
     };
@@ -62,12 +83,13 @@ export const uploadMediaCloudinary = async (
 
     const cloudinaryResponse = await cloudinary.uploader.upload(filePath, {
       resource_type: resourceType,
+      folder: getCloudinaryFolder(resourceType),
     });
 
     fs.unlinkSync(filePath);
 
     return {
-      public_id: cloudinaryResponse.public_id,
+      public_id: getPublicId(cloudinaryResponse.public_id),
       secure_url: cloudinaryResponse.secure_url,
       resource_type: cloudinaryResponse.resource_type,
     };
@@ -89,7 +111,7 @@ export const deleteCloudinary = async (
   resourceType: CloudinaryResourceType = "image",
 ): Promise<unknown> => {
   try {
-    return await cloudinary.uploader.destroy(publicId, {
+    return await cloudinary.uploader.destroy(getDestroyPublicId(publicId, resourceType), {
       resource_type: resourceType,
     });
   } catch (error: any) {
