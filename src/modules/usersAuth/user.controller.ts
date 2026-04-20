@@ -33,6 +33,7 @@ export const updateUser = asyncHandler(async (req: Request, res: Response) => {
     phone: result.phone,
     address: result.address,
     company: result.company,
+    location: result.location,
     profileImage: result.profileImage,
   });
 });

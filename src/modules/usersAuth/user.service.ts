@@ -149,7 +149,7 @@ export const userService = {
 
   //update user
   async updateUser(req: any) {
-    const data: UpdateUserPayload = req.body;
+    const { latitude, longitude, locationAddress, ...data } = req.body as UpdateUserPayload;
     const { email, role } = req?.user as { email: string; role: string };
     const image = req?.file as Express.Multer.File;
 
@@ -168,8 +168,20 @@ export const userService = {
       }
     }
 
-    const user = await userModel.findOneAndUpdate({ email: email }, data, {
+    const updateData: Record<string, unknown> = { ...data };
+    if (latitude !== undefined && longitude !== undefined) {
+      updateData.location = {
+        type: "Point",
+        coordinates: [longitude, latitude],
+        ...(locationAddress !== undefined ? { address: locationAddress } : {}),
+      };
+    } else if (locationAddress !== undefined) {
+      updateData["location.address"] = locationAddress;
+    }
+
+    const user = await userModel.findOneAndUpdate({ email: email }, { $set: updateData }, {
       returnDocument: "after",
+      runValidators: true,
     });
     if (!user) throw new CustomError(400, "User not found");
 
