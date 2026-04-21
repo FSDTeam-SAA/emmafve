@@ -40,15 +40,15 @@ export const authService = {
       verificationOtpExpire: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
     });
 
-    try {
-      await mailer({
-        email: user.email,
-        subject: "Your HESTEKA verification code",
-        template: verificationOtpEmailTemplate(user.firstName, otp),
-      });
-    } catch (error) {
-      console.error("[Auth] Failed to send verification email:", error);
-    }
+    // try {
+    //   await mailer({
+    //     email: user.email,
+    //     subject: "Your HESTEKA verification code",
+    //     template: verificationOtpEmailTemplate(user.firstName, otp),
+    //   });
+    // } catch (error) {
+    //   console.error("[Auth] Failed to send verification email:", error);
+    // }
 
     return user;
   },
