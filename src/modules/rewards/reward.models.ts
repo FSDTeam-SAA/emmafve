@@ -25,13 +25,17 @@ const rewardItemSchema = new Schema<IRewardItem>(
       min: 0,
     },
     photo: {
-      public_id: { type: String, required: true },
-      secure_url: { type: String, required: true },
+      public_id: { type: String },
+      secure_url: { type: String },
     },
     type: {
       type: String,
       enum: Object.values(RewardItemType),
       required: true,
+    },
+    amount: {
+      type: Number,
+      min: 0,
     },
     category: {
       type: String,
