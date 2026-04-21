@@ -17,3 +17,5 @@ export interface INotification extends Document {
   type: NotificationType;
   isRead: boolean;
 }
+
+//edit as you need
