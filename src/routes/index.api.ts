@@ -21,6 +21,7 @@ import { rewardRoute } from "../modules/rewards/reward.route";
 import { storyRoute } from "../modules/stories/stories.routes";
 import { donationProofRoute } from "../modules/donationProofs/donationProof.route";
 import { adminRoute } from "../modules/admin/admin.route";
+import { privateChatRoute } from "../modules/community/privatechat/privatechat.routes";
 
 router.use("/user", userRoute);
 router.use("/auth", authRoute);
@@ -31,7 +32,7 @@ router.use("/local-missions", localMissionRoute);
 router.use("/points", pointRoute);
 router.use("/contacts", contactRoute);
 // Webhook — raw body লাগবে তাই আলাদা
-router.post("/webhook/stripe",stripeWebhookHandler);
+router.post("/webhook/stripe", stripeWebhookHandler);
 router.post("/webhook/paypal", paypalWebhookHandler);
 
 router.use("/payments", paymentRoute);
@@ -44,5 +45,6 @@ router.use("/rewards", rewardRoute);
 router.use("/community/stories", storyRoute);
 router.use("/donation-proofs", donationProofRoute);
 router.use("/admin", adminRoute);
+router.use("/community/private", privateChatRoute);
 
 export default router;
