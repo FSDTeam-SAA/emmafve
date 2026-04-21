@@ -18,6 +18,8 @@ import {
 } from "./reward.interface";
 import { redemptionModel, rewardItemModel } from "./reward.models";
 import { rewardValidation } from "./reward.validation";
+import { notificationService } from "../notifications/notification.service";
+import { NotificationType } from "../notifications/notification.interface";
 
 const deleteCloudinaryQuietly = async (publicId?: string): Promise<void> => {
   if (!publicId) return;
@@ -29,24 +31,41 @@ const deleteCloudinaryQuietly = async (publicId?: string): Promise<void> => {
 };
 
 export const rewardService = {
-  async createRewardItem(req: Request): Promise<IRewardItem> {
+    async createRewardItem(req: Request): Promise<IRewardItem> {
     const data = req.body;
     const image = req.file;
-    if (!image) throw new CustomError(400, "Reward item photo is required");
 
-    const photo = await uploadCloudinary(image.path);
+    // Validation
+    if (data.type === RewardItemType.GIFTCARD && !data.amount) {
+      throw new CustomError(400, "Amount is required for gift card");
+    }
+    if (data.type === RewardItemType.PRODUCT && !data.stock) {
+      throw new CustomError(400, "Stock is required for product");
+    }
+    
+    // Require image for products
+    if (!image && data.type === RewardItemType.PRODUCT) {
+      throw new CustomError(400, "Reward item photo is required");
+    }
+
+    // Safely handle image upload
+    let photo = undefined;
+    if (image) {
+      photo = await uploadCloudinary(image.path);
+    }
 
     try {
       const reward = await rewardItemModel.create({
         ...data,
-        photo,
+        photo, // Note: This will fail if photo is undefined and required in Model
       });
       return reward;
     } catch (error) {
-      await deleteCloudinaryQuietly(photo.public_id);
+      if (photo) await deleteCloudinaryQuietly(photo.public_id);
       throw error;
     }
   },
+
 
   async getAllRewardItems(req: Request) {
     const {
@@ -152,7 +171,7 @@ export const rewardService = {
     const reward = await rewardItemModel.findById(rewardId);
     if (!reward) throw new CustomError(404, "Reward item not found");
     if (!reward.isActive) throw new CustomError(400, "This reward is not active");
-    if (reward.type === RewardItemType.PRODUCT && reward.stock <= 0) {
+    if (reward.stock <= 0) {
       throw new CustomError(400, "Out of stock");
     }
 
@@ -202,14 +221,19 @@ export const rewardService = {
           { session },
         );
 
-        // Update stock if Product
-        if (reward.type === RewardItemType.PRODUCT) {
-          reward.stock -= 1;
-          await reward.save({ session });
+        // Update stock
+        reward.stock -= 1;
+        await reward.save({ session });
+
+        if (!redemption || !redemption[0]) {
+          throw new CustomError(500, "Failed to create redemption record");
         }
 
+        const redemptionData = redemption[0].toObject();
+        delete redemptionData.giftCardCode;
+
         result = {
-          redemption: redemption[0],
+          redemption: redemptionData,
           transaction: transaction[0],
           balance: updatedUser.pointsBalance,
         };
@@ -227,6 +251,7 @@ export const rewardService = {
     const redemptions = await redemptionModel
       .find({ user: userId })
       .populate("rewardItem")
+      .select("-giftCardCode")
       .sort({ createdAt: -1 });
     return redemptions;
   },
@@ -250,10 +275,10 @@ export const rewardService = {
 
     const filter: any = {};
     if (status) {
-      if (!["pending", "completed", "cancelled"].includes(status as string)) {
+      if (!Object.values(RedemptionStatus).includes(status as RedemptionStatus)) {
         throw new CustomError(
           400,
-          "Invalid status parameter. Only pending, completed and cancelled status is allowed",
+          `Invalid status parameter. Allowed values are: ${Object.values(RedemptionStatus).join(", ")}`,
         );
       }
       filter.status = status as RedemptionStatus;
@@ -348,13 +373,108 @@ export const rewardService = {
     const { redemptionId } = req.params;
     const { status, giftCardCode } = req.body;
 
-    const redemption = await redemptionModel.findById(redemptionId);
-    if (!redemption) throw new CustomError(404, "Redemption not found");
+    const session = await mongoose.startSession();
+    try {
+      let updatedRedemption: any;
+      await session.withTransaction(async () => {
+        const redemption = await redemptionModel.findById(redemptionId).session(session);
+        if (!redemption) throw new CustomError(404, "Redemption not found");
 
-    if (status) redemption.status = status as RedemptionStatus;
-    if (giftCardCode) redemption.giftCardCode = giftCardCode;
+        //if status is completed then 
+        if (redemption.status === RedemptionStatus.COMPLETED) {
+          throw new CustomError(400, "Redemption is already completed");
+        }
 
-    await redemption.save();
-    return redemption;
+        //if status is cancelled then 
+        if (redemption.status === RedemptionStatus.CANCELLED) {
+          throw new CustomError(400, "Redemption is already cancelled");
+        }
+
+        const previousStatus = redemption.status;
+        const newStatus = status as RedemptionStatus;
+
+        // Fetch reward item to check type
+        const reward = await rewardItemModel.findById(redemption.rewardItem).session(session);
+        if (!reward) throw new CustomError(404, "Associated reward item not found");
+
+        if (newStatus === RedemptionStatus.EMAIL_SENT && reward.type !== RewardItemType.GIFTCARD) {
+          throw new CustomError(400, "Status 'email_sent' is only allowed for gift cards");
+        }
+
+        if (newStatus === RedemptionStatus.SHIPPED && reward.type === RewardItemType.GIFTCARD) {
+          throw new CustomError(400, "Status 'shipped' is not allowed for gift cards. Use 'email_sent' instead");
+        }
+
+        if (status) redemption.status = newStatus;
+        if (giftCardCode) redemption.giftCardCode = giftCardCode;
+
+        // If status changed to CANCELLED, refund points and restore stock
+        if (newStatus === RedemptionStatus.CANCELLED) {
+          // 1. Refund points to user
+          const updatedUser = await userModel.findByIdAndUpdate(
+            redemption.user,
+            { $inc: { pointsBalance: redemption.pointsAtRedemption } },
+            { session, new: true }
+          );
+
+          if (!updatedUser) throw new CustomError(404, "User not found for point refund");
+
+          // 2. Create point transaction for refund
+          await pointTransactionModel.create(
+            [
+              {
+                user: redemption.user,
+                type: PointTransactionType.EARN,
+                source: PointTransactionSource.REWARD_ITEM,
+                points: redemption.pointsAtRedemption,
+                note: `Refund for cancelled redemption: ${redemptionId}`,
+              },
+            ],
+            { session }
+          );
+
+          // 3. Restore stock of the reward item
+          await rewardItemModel.findByIdAndUpdate(
+            redemption.rewardItem,
+            { $inc: { stock: 1 } },
+            { session }
+          );
+        }
+
+        await redemption.save({ session });
+        updatedRedemption = redemption;
+      });
+
+      // Send notifications (outside transaction, fire & forget)
+      if (status) {
+        const userId = updatedRedemption.user.toString();
+        const newStatus = status as RedemptionStatus;
+        let title = "";
+        let body = "";
+
+        if (newStatus === RedemptionStatus.SHIPPED) {
+          title = "Reward Shipped!";
+          body = "Good news! Your reward item has been shipped and is on its way.";
+        } else if (newStatus === RedemptionStatus.DELIVERED) {
+          title = "Reward Delivered!";
+          body = "Your reward item has been delivered. Enjoy!";
+        } else if (newStatus === RedemptionStatus.EMAIL_SENT) {
+          title = "Gift Card Sent!";
+          body = "Great news! Your gift card code has been sent to your email. Check your inbox!";
+        } else if (newStatus === RedemptionStatus.CANCELLED) {
+          title = "Redemption Rejected";
+          body = "Your reward redemption request was rejected. Points have been refunded to your balance.";
+        }
+
+        if (title && body) {
+          notificationService.notifySingleUser(userId, title, body, NotificationType.REWARD_UPDATE)
+            .catch(err => console.error("[Notification Error] Failed to notify user of reward status change:", err));
+        }
+      }
+
+      return updatedRedemption;
+    } finally {
+      await session.endSession();
+    }
   },
 };
