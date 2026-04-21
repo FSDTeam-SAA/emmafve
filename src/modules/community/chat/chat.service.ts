@@ -12,7 +12,6 @@ import CustomError from "../../../helpers/CustomError";
 import {
   toGeoPoint,
   encodeGeohash,
-  getGeohashWithNeighbors,
   buildGeoWithinQuery,
   fromGeoPoint,
   calculateDistanceKm,
@@ -26,6 +25,8 @@ import {
 } from "../../../helpers/cloudinary";
 import { getIo } from "../../../socket/server";
 import { ChatSocketEvents } from "../../../socket/socket.type";
+import { notificationService } from "../../notifications/notification.service";
+import { NotificationType } from "../../notifications/notification.interface";
 
 const getMediaTypeFromMime = (mimetype: string): MediaType => {
   if (mimetype.startsWith("image/")) return MediaType.IMAGE;
@@ -41,7 +42,6 @@ const getCloudinaryResourceType = (
   return "raw";
 };
 
-// Broadcast to all geohash rooms around a location
 const broadcastToGeohashes = (
   lat: number,
   lng: number,
@@ -50,9 +50,8 @@ const broadcastToGeohashes = (
 ): void => {
   try {
     const io = getIo();
-    const geohash = encodeGeohash(lat, lng); // changed: single cell, not 9
-
-    io.to(`geo:${geohash}`).emit(event, data); // changed: emit once
+    const geohash = encodeGeohash(lat, lng);
+    io.to(`geo:${geohash}`).emit(event, data);
   } catch (error) {
     console.error("Socket broadcast failed:", error);
   }
@@ -67,7 +66,6 @@ const uploadChatMedia = async (
     for (const file of files) {
       const mediaType = getMediaTypeFromMime(file.mimetype);
       const resourceType = getCloudinaryResourceType(mediaType);
-
       const result = await uploadMediaCloudinary(file.path, resourceType);
 
       uploadedMedia.push({
@@ -76,7 +74,6 @@ const uploadChatMedia = async (
         type: mediaType,
       });
     }
-
     return uploadedMedia;
   } catch (error) {
     for (const media of uploadedMedia) {
@@ -91,7 +88,29 @@ const createChat = async (
   payload: CreateChatPayload,
   files?: Express.Multer.File[],
 ): Promise<IChat> => {
-  const { user, content, lat, lng, address } = payload;
+  const { user, content, lat, lng, address, replyTo } = payload;
+
+  // ─── Validate replyTo if provided ───────────────────────────────
+  let replyToId: Types.ObjectId | undefined;
+  let originalOwnerId: string | undefined;
+
+  if (replyTo) {
+    if (!Types.ObjectId.isValid(replyTo)) {
+      throw new CustomError(400, "Invalid replyTo message ID");
+    }
+
+    const originalMessage = await chatModel
+      .findById(replyTo)
+      .select("user")
+      .lean();
+
+    if (!originalMessage) {
+      throw new CustomError(404, "Original message not found");
+    }
+
+    replyToId = new Types.ObjectId(replyTo);
+    originalOwnerId = originalMessage.user.toString();
+  }
 
   const location = toGeoPoint(lat, lng, address);
   const geohash = encodeGeohash(lat, lng);
@@ -107,21 +126,52 @@ const createChat = async (
     media,
     location,
     geohash,
+    ...(replyToId && { replyTo: replyToId }),
   });
 
-  // Populate user data before broadcasting
+  // ─── Populate full data for broadcast ───────────────────────────
   const populatedChat = await chatModel
     .findById(chat._id)
     .populate("user", "firstName lastName profileImage")
+    .populate({
+      path: "replyTo",
+      select: "content user",
+      populate: {
+        path: "user",
+        select: "firstName lastName profileImage",
+      },
+    })
     .lean();
 
-  // Broadcast to nearby users
+  // ─── Broadcast to nearby users ───────────────────────────────────
   broadcastToGeohashes(
     lat,
     lng,
     ChatSocketEvents.CHAT_NEW_MESSAGE,
     populatedChat,
   );
+
+  // ─── Notify original message owner if this is a reply ───────────
+  if (replyToId && originalOwnerId) {
+    const isSelfReply = originalOwnerId === user.toString();
+
+    if (!isSelfReply) {
+      const replierName = (populatedChat?.user as any)
+        ? `${(populatedChat?.user as any).firstName} ${(populatedChat?.user as any).lastName}`
+        : "Someone";
+
+      const preview =
+        content.length > 60 ? `${content.slice(0, 60)}...` : content;
+
+      // DB save + socket emit via existing notificationService
+      await notificationService.notifySingleUser(
+        originalOwnerId,
+        "New reply to your message",
+        `${replierName} replied: "${preview}"`,
+        NotificationType.CHAT_REPLY,
+      );
+    }
+  }
 
   return chat;
 };
@@ -140,6 +190,14 @@ const getLocalChat = async (query: GetLocalChatQuery) => {
     chatModel
       .find(geoFilter)
       .populate("user", "firstName lastName profileImage")
+      .populate({
+        path: "replyTo",
+        select: "content user",
+        populate: {
+          path: "user",
+          select: "firstName lastName profileImage",
+        },
+      })
       .sort({ createdAt: -1 })
       .skip(pagination.skip)
       .limit(pagination.limit)
@@ -176,6 +234,14 @@ const getGlobalChat = async (query: GetGlobalChatQuery) => {
     chatModel
       .find()
       .populate("user", "firstName lastName profileImage")
+      .populate({
+        path: "replyTo",
+        select: "content user",
+        populate: {
+          path: "user",
+          select: "firstName lastName profileImage",
+        },
+      })
       .sort({ createdAt: -1 })
       .skip(pagination.skip)
       .limit(pagination.limit)
@@ -201,7 +267,15 @@ const getChatById = async (chatId: string): Promise<IChat> => {
 
   const chat = await chatModel
     .findById(chatId)
-    .populate("user", "firstName lastName profileImage");
+    .populate("user", "firstName lastName profileImage")
+    .populate({
+      path: "replyTo",
+      select: "content user",
+      populate: {
+        path: "user",
+        select: "firstName lastName profileImage",
+      },
+    });
 
   if (!chat) {
     throw new CustomError(404, "Chat message not found");
@@ -237,7 +311,6 @@ const deleteChat = async (
 
   await chatModel.findByIdAndDelete(chatId);
 
-  // Notify nearby users that this message was deleted
   broadcastToGeohashes(lat, lng, ChatSocketEvents.CHAT_MESSAGE_DELETED, {
     chatId,
   });

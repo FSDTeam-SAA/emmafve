@@ -60,6 +60,12 @@ const chatSchema = new Schema<IChat>(
       default: 0,
       min: 0,
     },
+    // ─── Reply System ────────────────────────────────────────────────
+    replyTo: {
+      type: Schema.Types.ObjectId,
+      ref: "Chat",
+      default: null,
+    },
   },
   {
     timestamps: true,
@@ -74,6 +80,9 @@ chatSchema.index({ createdAt: -1 });
 
 // Compound index for user-specific message fetching
 chatSchema.index({ user: 1, createdAt: -1 });
+
+// Index for fetching all replies to a message
+chatSchema.index({ replyTo: 1 });
 
 export const chatModel: Model<IChat> = mongoose.model<IChat>(
   "Chat",

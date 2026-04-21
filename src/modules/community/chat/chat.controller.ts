@@ -11,7 +11,7 @@ const createChat = asyncHandler(async (req: Request, res: Response) => {
     throw new CustomError(401, "Unauthorized");
   }
 
-  const { content, lat, lng, address } = req.body;
+  const { content, lat, lng, address, replyTo } = req.body;
 
   const files = Array.isArray(req.files)
     ? (req.files as Express.Multer.File[])
@@ -24,6 +24,7 @@ const createChat = asyncHandler(async (req: Request, res: Response) => {
       lat: Number(lat),
       lng: Number(lng),
       address,
+      replyTo: replyTo || undefined, // optional — only if replying
     },
     files,
   );

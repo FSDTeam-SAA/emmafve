@@ -26,3 +26,10 @@ export const getCrowdfundingStats = asyncHandler(async (req: Request, res: Respo
   const stats = await adminService.getCrowdfundingStats();
   ApiResponse.sendSuccess(res, 200, "Crowdfunding statistics fetched successfully", stats);
 });
+
+//: approve report points (Admin)
+export const approveReportPoints = asyncHandler(async (req: Request, res: Response) => {
+  const { reportId } = req.params;
+  const result = await adminService.approveReportPoints(reportId as string);
+  ApiResponse.sendSuccess(res, 200, "Report points approved successfully", result);
+});

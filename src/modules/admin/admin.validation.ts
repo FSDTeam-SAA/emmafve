@@ -5,6 +5,7 @@ export const updateAdminConfigSchema = z.object({
   pointsPerLocalMission: z.number().min(0).optional(),
   pointsPerStoryApproval: z.number().min(0).optional(),
   pointsPerReportResolved: z.number().min(0).optional(),
+  pointsPerReport: z.number().min(0).optional(),
   crowdfundingTotal: z.number().min(0).optional(),
   crowdfundingGoal: z.number().min(0).optional(),
 }).strict();
