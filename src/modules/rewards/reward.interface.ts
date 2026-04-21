@@ -13,6 +13,9 @@ export enum RewardCategory {
 
 export enum RedemptionStatus {
   PENDING = "pending",
+  SHIPPED = "shipped",
+  DELIVERED = "delivered",
+  EMAIL_SENT = "email_sent",
   COMPLETED = "completed",
   CANCELLED = "cancelled",
 }
@@ -21,11 +24,12 @@ export interface IRewardItem extends Document {
   title: string;
   description: string;
   points: number;
-  photo: {
+  photo?: {
     public_id: string;
     secure_url: string;
   };
   type: RewardItemType;
+  amount?: number;
   category: RewardCategory;
   stock: number;
   isActive: boolean;

@@ -11,6 +11,8 @@ export interface IAdminConfig extends Document {
   crowdfundingTotal: number;
   crowdfundingGoal: number;
   
+  pointsPerReport: number;
+  
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,6 +45,7 @@ export interface UpdateAdminConfigPayload {
   pointsPerLocalMission?: number;
   pointsPerStoryApproval?: number;
   pointsPerReportResolved?: number;
+  pointsPerReport?: number;
   crowdfundingTotal?: number;
   crowdfundingGoal?: number;
 }

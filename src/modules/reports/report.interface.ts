@@ -61,6 +61,7 @@ export interface IReport extends Document {
   isEmailVisible: boolean;
   location: ILocation;
   comments: (Types.ObjectId | string)[];
+  isPointApproved: boolean;
 }
 
 export interface CreateReportPayload {

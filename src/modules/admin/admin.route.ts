@@ -6,7 +6,8 @@ import {
   getStats, 
   getConfig, 
   updateConfig, 
-  getCrowdfundingStats 
+  getCrowdfundingStats,
+  approveReportPoints
 } from "./admin.controller";
 
 const router = Router();
@@ -23,6 +24,13 @@ router.patch(
   allowRole("admin"), 
   validateRequest(updateAdminConfigSchema), 
   updateConfig
+);
+
+router.patch(
+  "/approve-report-points/:reportId",
+  authGuard,
+  allowRole("admin"),
+  approveReportPoints
 );
 
 export const adminRoute = router;

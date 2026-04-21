@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { userModel } from "../usersAuth/user.models";
 import { reportModel } from "../reports/report.models";
 import { donationModel } from "../donation/donation.models";
@@ -7,8 +8,9 @@ import { adminConfigModel } from "./admin.models";
 import { status as UserStatus, role as UserRole } from "../usersAuth/user.interface";
 import { ReportStatus } from "../reports/report.interface";
 import { DonationProofStatus } from "../donationProofs/donationProof.interface";
-import { PointTransactionType } from "../points/point.interface";
+import { PointTransactionType, PointTransactionSource } from "../points/point.interface";
 import { UpdateAdminConfigPayload } from "./admin.interface";
+import CustomError from "../../helpers/CustomError";
 
 export const adminService = {
   async getStats() {
@@ -112,5 +114,67 @@ export const adminService = {
         ? Math.min(100, (config.crowdfundingTotal / config.crowdfundingGoal) * 100)
         : 0
     };
-  }
+  },
+
+  async approveReportPoints(reportId: string) {
+    const session = await mongoose.startSession();
+    session.startTransaction();
+
+    try {
+      // 1. Get the report
+      const report = await reportModel.findById(reportId).session(session);
+      if (!report) {
+        throw new CustomError(404, "Report not found");
+      }
+
+      // 2. Check if already approved
+      if (report.isPointApproved) {
+        throw new CustomError(400, "Points for this report have already been approved");
+      }
+
+      // 3. Get point value from config
+      const config = await this.getConfig();
+      const pointsToAdd = config.pointsPerReport || 10;
+
+      // 4. Update user balance
+      const user = await userModel.findByIdAndUpdate(
+        report.author,
+        { $inc: { pointsBalance: pointsToAdd } },
+        { session, new: true }
+      );
+
+      if (!user) {
+        throw new CustomError(404, "User (author) not found");
+      }
+
+      // 5. Create transaction
+      await pointTransactionModel.create(
+        [
+          {
+            user: report.author,
+            type: PointTransactionType.EARN,
+            source: PointTransactionSource.ANIMAL_REPORT,
+            points: pointsToAdd,
+            note: `Reward for report: ${report.title || report.animalName}`,
+          },
+        ],
+        { session }
+      );
+
+      // 6. Mark report as approved
+      report.isPointApproved = true;
+      await report.save({ session });
+
+      await session.commitTransaction();
+      return {
+        pointsAwarded: pointsToAdd,
+        newBalance: user.pointsBalance,
+      };
+    } catch (error) {
+      await session.abortTransaction();
+      throw error;
+    } finally {
+      session.endSession();
+    }
+  },
 };

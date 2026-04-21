@@ -8,6 +8,7 @@ export enum NotificationType {
   SYSTEM = "system",
   ACCOUNT_UPDATE = "account_update",
   CHAT_REPLY = "chat_reply",
+  REWARD_UPDATE = "reward_update",
 }
 
 export interface INotification extends Document {
@@ -17,3 +18,5 @@ export interface INotification extends Document {
   type: NotificationType;
   isRead: boolean;
 }
+
+//edit as you need

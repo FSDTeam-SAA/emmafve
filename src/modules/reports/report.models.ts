@@ -114,6 +114,10 @@ const reportSchema = new Schema<IReport>(
         ref: "Comment",
       },
     ],
+    isPointApproved: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
