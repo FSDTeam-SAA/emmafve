@@ -20,12 +20,14 @@ interface MailerOptions {
   subject: string;
   template: string;
   email: string;
+  attachments?: any[];
 }
 
 export const mailer = async ({
   subject,
   template,
   email,
+  attachments,
 }: MailerOptions): Promise<void> => {
   if (!config.mailer.hostMail || !config.mailer.appPassword) {
     throw new CustomError(501, "Mail service not configured. HOST_MAIL or APP_PASSWORD is missing.");
@@ -37,6 +39,7 @@ export const mailer = async ({
       to: email,
       subject,
       html: template,
+      attachments,
     });
   } catch (error: unknown) {
     const errMsg = error instanceof Error ? error.message : "Unknown mail error";
