@@ -1,7 +1,19 @@
 import { Request, Response } from "express";
+import { DonationCategory, RefusalReason } from "./donationProof.interface";
 import { asyncHandler } from "../../utils/asyncHandler";
 import ApiResponse from "../../utils/apiResponse";
 import { donationProofService } from "./donationProof.service";
+
+//: get accepted values for categories and refusal reasons
+export const getAcceptedValues = asyncHandler(async (req: Request, res: Response) => {
+  const categories = Object.values(DonationCategory);
+  const refusalReasons = Object.values(RefusalReason);
+  
+  ApiResponse.sendSuccess(res, 200, "Accepted values fetched successfully", {
+    categories,
+    refusalReasons
+  });
+});
 
 //: submit donation proof
 export const submitProof = asyncHandler(async (req: Request, res: Response) => {
@@ -25,7 +37,19 @@ export const validateProof = asyncHandler(async (req: Request, res: Response) =>
 //: reject proof (Admin)
 export const rejectProof = asyncHandler(async (req: Request, res: Response) => {
   const { donationProofId } = req.params;
-  const { adminNote } = req.body;
-  const result = await donationProofService.rejectProof(donationProofId as string, adminNote);
+  const { adminNote, refusalReason } = req.body;
+  const result = await donationProofService.rejectProof(donationProofId as string, adminNote, refusalReason);
   ApiResponse.sendSuccess(res, 200, "Donation proof rejected", result);
+});
+
+//: validate all pending proofs (Admin)
+export const validateAll = asyncHandler(async (req: Request, res: Response) => {
+  const result = await donationProofService.validateAll();
+  ApiResponse.sendSuccess(res, 200, result.message, result);
+});
+
+//: get validation stats (Admin)
+export const getValidationStats = asyncHandler(async (req: Request, res: Response) => {
+  const result = await donationProofService.getValidationStats();
+  ApiResponse.sendSuccess(res, 200, "Validation stats fetched successfully", result);
 });

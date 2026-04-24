@@ -33,3 +33,45 @@ export const approveReportPoints = asyncHandler(async (req: Request, res: Respon
   const result = await adminService.approveReportPoints(reportId as string);
   ApiResponse.sendSuccess(res, 200, "Report points approved successfully", result);
 });
+
+//: get user stats (Admin)
+export const getUserStats = asyncHandler(async (req: Request, res: Response) => {
+  const stats = await adminService.getUserStats();
+  ApiResponse.sendSuccess(res, 200, "User statistics fetched successfully", stats);
+});
+
+//: get report stats (Admin)
+export const getReportStats = asyncHandler(async (req: Request, res: Response) => {
+  const stats = await adminService.getReportStats();
+  ApiResponse.sendSuccess(res, 200, "Report statistics fetched successfully", stats);
+});
+
+//: get partner stats (Admin)
+export const getPartnerStats = asyncHandler(async (req: Request, res: Response) => {
+  const stats = await adminService.getPartnerStats();
+  ApiResponse.sendSuccess(res, 200, "Partner statistics fetched successfully", stats);
+});
+
+//: get mission stats (Admin)
+export const getMissionStats = asyncHandler(async (req: Request, res: Response) => {
+  const stats = await adminService.getMissionStats();
+  ApiResponse.sendSuccess(res, 200, "Mission statistics fetched successfully", stats);
+});
+
+//: get donation stats (Admin)
+export const getDonationStats = asyncHandler(async (req: Request, res: Response) => {
+  const stats = await adminService.getDonationStats();
+  ApiResponse.sendSuccess(res, 200, "Donation statistics fetched successfully", stats);
+});
+
+//: get physical item stats (Admin)
+export const getPhysicalItemStats = asyncHandler(async (req: Request, res: Response) => {
+  const stats = await adminService.getPhysicalItemStats();
+  ApiResponse.sendSuccess(res, 200, "Physical item statistics fetched successfully", stats);
+});
+
+//: get collection point stats (Admin)
+export const getCollectionPointStats = asyncHandler(async (req: Request, res: Response) => {
+  const stats = await adminService.getCollectionPointStats();
+  ApiResponse.sendSuccess(res, 200, "Collection point statistics fetched successfully", stats);
+});

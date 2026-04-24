@@ -1,5 +1,6 @@
 import express from "express";
 import { donationController } from "./donation.controller";
+import { authGuard, allowRole } from "../../middleware/auth.middleware";
 import { validateRequest } from "../../middleware/validateRequest.middleware";
 import {
   createStripeDonationSchema,
@@ -27,4 +28,23 @@ donationRoute.post(
   "/paypal/capture",
   validateRequest(capturePayPalDonationSchema),
   donationController.capturePayPalDonation,
+);
+
+donationRoute.get(
+  "/get-all-donation",
+  authGuard,
+  allowRole("admin"),
+  donationController.getAllDonations,
+);
+donationRoute.get(
+  "/stats",
+  authGuard,
+  allowRole("admin"),
+  donationController.getDonationStats,
+);
+donationRoute.get(
+  "/:donationId",
+  authGuard,
+  allowRole("admin"),
+  donationController.getSingleDonation,
 );

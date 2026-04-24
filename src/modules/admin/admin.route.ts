@@ -7,7 +7,14 @@ import {
   getConfig, 
   updateConfig, 
   getCrowdfundingStats,
-  approveReportPoints
+  approveReportPoints,
+  getUserStats,
+  getReportStats,
+  getPartnerStats,
+  getMissionStats,
+  getDonationStats,
+  getPhysicalItemStats,
+  getCollectionPointStats
 } from "./admin.controller";
 
 const router = Router();
@@ -32,5 +39,13 @@ router.patch(
   allowRole("admin"),
   approveReportPoints
 );
+
+router.get("/stats/users", authGuard, allowRole("admin"), getUserStats);
+router.get("/stats/reports", authGuard, allowRole("admin"), getReportStats);
+router.get("/stats/partners", authGuard, allowRole("admin"), getPartnerStats);
+router.get("/stats/missions", authGuard, allowRole("admin"), getMissionStats);
+router.get("/stats/donations", authGuard, allowRole("admin"), getDonationStats);
+router.get("/stats/items", authGuard, allowRole("admin"), getPhysicalItemStats);
+router.get("/stats/collection-points", authGuard, allowRole("admin"), getCollectionPointStats);
 
 export const adminRoute = router;
