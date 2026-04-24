@@ -75,25 +75,15 @@ export const rewardService = {
       type,
       search,
       isActive,
+      from,
+      to,
+      sort,
+      sortBy,
     } = req.query;
     const { page, limit, skip } = paginationHelper(
       pagebody as string,
       limitbody as string,
     );
-
-    if (category && !["limited", "featured", "solidarity"].includes(category as string)) {
-      throw new CustomError(
-        400,
-        "Invalid category. Allowed values are: limited, featured, solidarity",
-      );
-    }
-
-    if (type && !["product", "giftcard"].includes(type as string)) {
-      throw new CustomError(
-        400,
-        "Invalid type. Allowed values are: product, giftcard",
-      );
-    }
 
     const filter: any = {};
     if (category) filter.category = category as RewardCategory;
@@ -103,8 +93,29 @@ export const rewardService = {
       filter.title = { $regex: search, $options: "i" };
     }
 
+    if (from || to) {
+      filter.createdAt = {};
+      if (from) filter.createdAt.$gte = new Date(from as string);
+      if (to) {
+        const toDate = new Date(to as string);
+        toDate.setHours(23, 59, 59, 999);
+        filter.createdAt.$lte = toDate;
+      }
+    }
+
+    const sortFields: Record<string, string> = {
+      name: "title",
+      title: "title",
+      date: "createdAt",
+      points: "points",
+      stock: "stock",
+    };
+    const sortByValue = typeof sortBy === "string" ? sortBy : "date";
+    const sortField = sortFields[sortByValue.toLowerCase()] ?? "createdAt";
+    const sortOrder = sort === "ascending" ? 1 : -1;
+
     const [rewards, total] = await Promise.all([
-      rewardItemModel.find(filter).sort({ createdAt: -1 }).skip(skip).limit(limit),
+      rewardItemModel.find(filter).sort({ [sortField]: sortOrder }).skip(skip).limit(limit),
       rewardItemModel.countDocuments(filter),
     ]);
 

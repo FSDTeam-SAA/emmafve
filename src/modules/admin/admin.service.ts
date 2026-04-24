@@ -11,48 +11,83 @@ import { DonationProofStatus } from "../donationProofs/donationProof.interface";
 import { PointTransactionType, PointTransactionSource } from "../points/point.interface";
 import { UpdateAdminConfigPayload } from "./admin.interface";
 import CustomError from "../../helpers/CustomError";
+import { paymentModel } from "../payment/payment.models";
+import { localMissionModel } from "../localMissions/localMission.models";
+import { partnerAdModel } from "../partnerAds/partnerAd.models";
+import { rewardItemModel, redemptionModel } from "../rewards/reward.models";
 
 export const adminService = {
   async getStats() {
-    const startOfMonth = new Date();
-    startOfMonth.setDate(1);
-    startOfMonth.setHours(0, 0, 0, 0);
+    const now = new Date();
+    
+    // Current Month
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+
+    // Last Month
+    const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
+
+    // Last Week
+    const lastWeek = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
 
     const [
       totalUsers,
       activeUsers,
-      pendingPartners,
+      newUsersThisWeek,
       totalReports,
       resolvedReports,
-      lostReports,
-      sightedReports,
-      digitalDonationsThisMonth,
-      physicalDonationsThisMonth,
+      pendingReports,
+      reportBreakdown,
+      reportsForMap,
+      donationsThisMonth,
+      donationsLastMonth,
       pointsEarnedThisMonth,
       pointsRedeemedThisMonth,
+      pendingPointsFromDonations,
+      pendingDonationProofs,
+      totalPartners,
+      activePartners,
+      pendingPartners,
+      totalMissions,
+      activeMissions,
+      recentReports,
+      recentUsers,
+      recentDonations,
+      config,
     ] = await Promise.all([
       // Users
       userModel.countDocuments(),
       userModel.countDocuments({ status: UserStatus.ACTIVE }),
-      userModel.countDocuments({ role: UserRole.PARTNERS, status: UserStatus.PENDING }),
+      userModel.countDocuments({ createdAt: { $gte: lastWeek } }),
 
       // Reports
       reportModel.countDocuments(),
       reportModel.countDocuments({ status: { $in: [ReportStatus.FOUND, ReportStatus.RESCUED] } }),
-      reportModel.countDocuments({ status: ReportStatus.LOST }),
-      reportModel.countDocuments({ status: ReportStatus.SIGHTED }),
+      reportModel.countDocuments({ status: { $in: [ReportStatus.LOST, ReportStatus.SIGHTED] } }),
+      reportModel.aggregate([
+        { $group: { _id: "$status", count: { $sum: 1 } } }
+      ]),
+      reportModel.find({ 
+        status: { $in: [ReportStatus.LOST, ReportStatus.SIGHTED] },
+        "location.coordinates": { $ne: [0, 0] }
+      })
+        .sort({ createdAt: -1 })
+        .select("location status animalName species breed gender age title images description author eventDate")
+        .populate("author", "firstName lastName profileImage")
+        .limit(5),
 
-      // Donations (Current Month)
+      // Donations (This Month vs Last Month)
       donationModel.aggregate([
-        { $match: { createdAt: { $gte: startOfMonth } } },
+        { $match: { createdAt: { $gte: startOfMonth, $lte: endOfMonth } } },
         { $group: { _id: null, total: { $sum: "$amount" } } },
       ]),
-      donationProofModel.aggregate([
-        { $match: { status: DonationProofStatus.APPROVED, createdAt: { $gte: startOfMonth } } },
+      donationModel.aggregate([
+        { $match: { createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth } } },
         { $group: { _id: null, total: { $sum: "$amount" } } },
       ]),
 
-      // Points (Current Month)
+      // Points
       pointTransactionModel.aggregate([
         { $match: { type: PointTransactionType.EARN, createdAt: { $gte: startOfMonth } } },
         { $group: { _id: null, total: { $sum: "$points" } } },
@@ -61,29 +96,135 @@ export const adminService = {
         { $match: { type: PointTransactionType.REDEEM, createdAt: { $gte: startOfMonth } } },
         { $group: { _id: null, total: { $sum: { $abs: "$points" } } } },
       ]),
+      // Pending Points from Donation Proofs
+      donationProofModel.aggregate([
+        { $match: { status: DonationProofStatus.PENDING } },
+        { $group: { _id: null, total: { $sum: "$pointsAwarded" } } }
+      ]),
+      donationProofModel.countDocuments({ status: DonationProofStatus.PENDING }),
+
+      // Partners
+      userModel.countDocuments({ role: UserRole.PARTNERS }),
+      userModel.countDocuments({ role: UserRole.PARTNERS, status: UserStatus.ACTIVE }),
+      userModel.countDocuments({ role: UserRole.PARTNERS, status: UserStatus.PENDING }),
+
+      // Missions
+      localMissionModel.countDocuments(),
+      localMissionModel.countDocuments({ status: "active" }),
+
+      // Activity Feed Data
+      reportModel.find().sort({ createdAt: -1 }).limit(3).populate("author", "firstName lastName"),
+      userModel.find().sort({ createdAt: -1 }).limit(3),
+      donationModel.find().sort({ createdAt: -1 }).limit(3),
+
+      // Config
+      this.getConfig(),
     ]);
+
+    const collectedThisMonth = donationsThisMonth[0]?.total || 0;
+    const collectedLastMonth = donationsLastMonth[0]?.total || 0;
+    const donationGrowth = collectedThisMonth - collectedLastMonth;
+
+    // Format Breakdown
+    const breakdownObj: any = {};
+    reportBreakdown.forEach((b: any) => {
+      breakdownObj[b._id] = b.count;
+    });
+
+    // Format Activity
+    const activity: any[] = [];
+    recentReports.forEach((r: any) => activity.push({
+      type: "report",
+      text: `${r.animalName || r.species} \u2014 ${r.status} report, ${r.location?.address?.split(',')[0] || "Unknown"}`,
+      time: r.createdAt,
+      user: `${r.author?.firstName || "User"} ${r.author?.lastName || ""}`
+    }));
+    recentUsers.forEach((u: any) => activity.push({
+      type: "user",
+      text: `${u.firstName} ${u.lastName} \u2014 just registered`,
+      time: u.createdAt
+    }));
+    recentDonations.forEach((d: any) => activity.push({
+      type: "donation",
+      text: `${d.amount}\u20AC donation received \u2013 ${d.method || "Stripe"}`,
+      time: d.createdAt,
+      user: d.donorName
+    }));
+    activity.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
 
     return {
       users: {
         total: totalUsers,
         active: activeUsers,
-        pendingPartners,
+        newThisWeek: newUsersThisWeek,
       },
       reports: {
         total: totalReports,
         resolved: resolvedReports,
-        lost: lostReports,
-        sighted: sightedReports,
+        pending: pendingReports,
+        resolutionRate: totalReports > 0 ? Math.round((resolvedReports / totalReports) * 100) : 0,
+        breakdown: {
+          lost: breakdownObj[ReportStatus.LOST] || 0,
+          found: breakdownObj[ReportStatus.FOUND] || 0,
+          sheltered: breakdownObj[ReportStatus.RESCUED] || 0,
+          injured: breakdownObj[ReportStatus.SIGHTED] || 0,
+        },
+        map: reportsForMap.map((r: any) => ({
+          id: r._id,
+          lat: r.location?.coordinates[1],
+          lng: r.location?.coordinates[0],
+          type: r.status,
+          title: r.animalName || r.species,
+          breed: r.breed,
+          gender: r.gender,
+          age: r.age,
+          images: r.images,
+          description: r.description,
+          eventDate: r.eventDate,
+          author: {
+            name: `${r.author?.firstName || "User"} ${r.author?.lastName || ""}`.trim(),
+            image: r.author?.profileImage?.secure_url
+          },
+          address: r.location?.address
+        }))
       },
       donations: {
-        collectedThisMonth: (digitalDonationsThisMonth[0]?.total || 0) + (physicalDonationsThisMonth[0]?.total || 0),
-        totalDigital: digitalDonationsThisMonth[0]?.total || 0,
-        totalPhysical: physicalDonationsThisMonth[0]?.total || 0,
+        collectedThisMonth,
+        growth: donationGrowth,
+        growthText: `${donationGrowth >= 0 ? "+" : ""}${donationGrowth}€ this month`,
       },
       points: {
         totalEarnedThisMonth: pointsEarnedThisMonth[0]?.total || 0,
         totalRedeemedThisMonth: pointsRedeemedThisMonth[0]?.total || 0,
+        pending: pendingPointsFromDonations[0]?.total || 0,
       },
+      donationProofs: {
+        pending: pendingDonationProofs,
+      },
+      partners: {
+        total: totalPartners,
+        active: activePartners,
+        pending: pendingPartners,
+      },
+      missions: {
+        total: totalMissions,
+        active: activeMissions,
+        inProgress: 3, // Mocked for now
+      },
+      downloads: {
+        total: 2103, // Mocked value
+        growth: 55,
+      },
+      crowdfunding: {
+        totalCollected: config.crowdfundingTotal,
+        goalAmount: config.crowdfundingGoal,
+        donors: 142, // Mocked or check if donation count
+        percentage: config.crowdfundingGoal > 0 
+          ? Math.min(100, (config.crowdfundingTotal / config.crowdfundingGoal) * 100)
+          : 0,
+        left: config.crowdfundingGoal - config.crowdfundingTotal
+      },
+      activity: activity.slice(0, 5)
     };
   },
 
@@ -177,4 +318,76 @@ export const adminService = {
       session.endSession();
     }
   },
+
+  async getUserStats() {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [total, active, suspended, newThisMonth, pendingPartners] = await Promise.all([
+      userModel.countDocuments(),
+      userModel.countDocuments({ status: UserStatus.ACTIVE }),
+      userModel.countDocuments({ status: { $in: ["blocked", "banned"] } }),
+      userModel.countDocuments({ createdAt: { $gte: startOfMonth } }),
+      userModel.countDocuments({ role: UserRole.PARTNERS, status: UserStatus.PENDING }),
+    ]);
+    return { total, active, suspended, newThisMonth, pendingPartners };
+  },
+
+  async getReportStats() {
+    const [total, resolved, lost, sighted] = await Promise.all([
+      reportModel.countDocuments(),
+      reportModel.countDocuments({ status: { $in: [ReportStatus.FOUND, ReportStatus.RESCUED] } }),
+      reportModel.countDocuments({ status: ReportStatus.LOST }),
+      reportModel.countDocuments({ status: ReportStatus.SIGHTED }),
+    ]);
+    return { total, resolved, lost, sighted };
+  },
+
+  async getPartnerStats() {
+    const [total, active, pending] = await Promise.all([
+      userModel.countDocuments({ role: UserRole.PARTNERS }),
+      userModel.countDocuments({ role: UserRole.PARTNERS, status: UserStatus.ACTIVE }),
+      userModel.countDocuments({ role: UserRole.PARTNERS, status: UserStatus.PENDING }),
+    ]);
+    return { total, active, pending };
+  },
+
+  async getMissionStats() {
+    const total = await localMissionModel.countDocuments();
+    const active = await localMissionModel.countDocuments({ status: "active" });
+    return { total, active };
+  },
+
+  async getDonationStats() {
+    const [totalCollected, pendingAmount, avgBasket] = await Promise.all([
+      donationModel.aggregate([{ $group: { _id: null, total: { $sum: "$amount" } } }]),
+      paymentModel.aggregate([
+        { $match: { status: "pending" } },
+        { $group: { _id: null, total: { $sum: "$amount" } } }
+      ]),
+      donationModel.aggregate([{ $group: { _id: null, avg: { $avg: "$amount" } } }]),
+    ]);
+
+    return {
+      totalCollected: totalCollected[0]?.total || 0,
+      pendingAmount: pendingAmount[0]?.total || 0,
+      averageBasket: avgBasket[0]?.avg || 0,
+      returnedToAsso: (totalCollected[0]?.total || 0) * 0.9, // Demo logic: 90% goes to association
+    };
+  },
+
+  async getPhysicalItemStats() {
+    const [totalItems, totalRedemptions, pendingRedemptions] = await Promise.all([
+      rewardItemModel.countDocuments(),
+      redemptionModel.countDocuments(),
+      redemptionModel.countDocuments({ status: "pending" }),
+    ]);
+    return { totalItems, totalRedemptions, pendingRedemptions };
+  },
+
+  async getCollectionPointStats() {
+    const total = await partnerAdModel.countDocuments({ type: "collection_point" });
+    return { total };
+  },
 };
+

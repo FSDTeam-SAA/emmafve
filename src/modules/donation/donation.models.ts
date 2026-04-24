@@ -6,7 +6,17 @@ const donationSchema = new Schema<IDonation>(
     payment: {
       type: Schema.Types.ObjectId,
       ref: "Payment",
-      required: true,
+      required: false,
+    },
+    method: {
+      type: String,
+      enum: ["stripe", "paypal", "collection_point"],
+      default: "stripe",
+    },
+    status: {
+      type: String,
+      enum: ["pending", "completed", "cancelled"],
+      default: "pending",
     },
     amount: {
       type: Number,
@@ -36,6 +46,16 @@ const donationSchema = new Schema<IDonation>(
       legalForm: { type: String },
       _id: false,
     },
+    referenceId: {
+      type: String, // ID of the DonationProof for collection_point
+      unique: true,
+      sparse: true,
+    },
+    receiptId: {
+      type: String,
+      unique: true,
+      required: true,
+    },
   },
   {
     timestamps: true,
@@ -44,7 +64,7 @@ const donationSchema = new Schema<IDonation>(
 
 donationSchema.index({ donorEmail: 1 });
 donationSchema.index({ type: 1 });
-donationSchema.index({ payment: 1 }, { unique: true });
+donationSchema.index({ payment: 1 }, { unique: true, sparse: true });
 donationSchema.index({ createdAt: -1 });
 
 export const donationModel: Model<IDonation> = mongoose.model<IDonation>(

@@ -11,10 +11,29 @@ import {
   submitProof,
   getPendingProofs,
   validateProof,
-  rejectProof
+  rejectProof,
+  getValidationStats,
+  getAcceptedValues,
+  validateAll
 } from "./donationProof.controller";
 
 const router = Router();
+
+router.post(
+  "/validate-all",
+  authGuard,
+  allowRole("admin"),
+  validateAll
+);
+
+router.get("/get-accepted-values", getAcceptedValues);
+
+router.get(
+  "/stats",
+  authGuard,
+  allowRole("admin"),
+  getValidationStats
+);
 
 // User routes
 router.post(
