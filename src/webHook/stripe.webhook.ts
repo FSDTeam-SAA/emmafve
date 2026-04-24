@@ -4,11 +4,14 @@ import { paymentService } from "../modules/payment/payment.service";
 import { PaymentStatus } from "../modules/payment/payment.interface";
 import { donationService } from "../modules/donation/donation.service";
 import config from "../config";
+import { getIo } from "../socket/server";
 
 export const stripeWebhookHandler = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
+  console.log("🔥 WEBHOOK HIT:", req.originalUrl);
+  console.log("HEADERS:", req.headers["stripe-signature"]);
   const signature = req.headers["stripe-signature"] as string;
 
   if (!signature) {
@@ -42,8 +45,16 @@ export const stripeWebhookHandler = async (
           paymentIntent.currency,
         );
 
-        // donation record তৈরি করো
         await donationService.createDonationFromPayment(payment);
+
+        // 🔥 SOCKET EMIT
+        const io = getIo();
+        if (payment.user) {
+          io.to(payment.user.toString()).emit("payment:update", {
+            status: "COMPLETED",
+            paymentIntentId: paymentIntent.id,
+          });
+        }
 
         break;
       }
@@ -51,13 +62,22 @@ export const stripeWebhookHandler = async (
       case "payment_intent.payment_failed": {
         const paymentIntent = event.data.object;
 
-        await paymentService.handleStripeWebhook(
+        const payment = await paymentService.handleStripeWebhook(
           paymentIntent.id,
           PaymentStatus.FAILED,
           paymentIntent.metadata,
           paymentIntent.amount,
           paymentIntent.currency,
         );
+
+        // 🔥 SOCKET EMIT
+        const io = getIo();
+        if (payment.user) {
+          io.to(payment.user.toString()).emit("payment:update", {
+            status: "FAILED",
+            paymentIntentId: paymentIntent.id,
+          });
+        }
 
         break;
       }

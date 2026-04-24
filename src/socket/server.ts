@@ -58,7 +58,7 @@ export const initSocket = (httpServer: http.Server): Server => {
         socket.userEmail = decoded.email;
         return next();
       }
-
+      
       // Fallback — legacy userId in query (for notification client)
       const queryUserId = socket.handshake.query?.userId as string | undefined;
 

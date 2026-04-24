@@ -15,12 +15,12 @@ import config from "../../config";
 /* ================= Stripe ================= */
 
 const createStripePaymentIntent = async (
-  payload: CreateStripePaymentIntentPayload,
+  payload: CreateStripePaymentIntentPayload & { userId?: string },
 ): Promise<{ clientSecret: string; paymentIntentId: string }> => {
-  const { amount, currency, payerEmail, payerName } = payload;
+  const { amount, currency, payerEmail, payerName, userId } = payload;
 
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: Math.round(amount * 100), // Stripe amounts are in cents
+    amount: Math.round(amount * 100),
     currency,
     metadata: {
       payerEmail,
@@ -31,6 +31,19 @@ const createStripePaymentIntent = async (
   if (!paymentIntent.client_secret) {
     throw new CustomError(500, "Failed to create payment intent");
   }
+
+  // ✅ PENDING create
+  await paymentModel.create({
+    provider: PaymentProvider.STRIPE,
+    providerTransactionId: paymentIntent.id,
+    amount,
+    currency,
+    status: PaymentStatus.PENDING,
+    payerEmail,
+    payerName,
+    user: userId || null,
+    metadata: paymentIntent.metadata,
+  });
 
   return {
     clientSecret: paymentIntent.client_secret,

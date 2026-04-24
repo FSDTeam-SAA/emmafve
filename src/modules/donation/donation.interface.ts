@@ -30,6 +30,7 @@ export interface CreateDonationPayload {
   companyInfo?: IDonationCompanyInfo;
   payerEmail: string;
   payerName: string;
+  userId?: string | null;
 }
 
 export interface CreateDonationFromPaymentPayload {

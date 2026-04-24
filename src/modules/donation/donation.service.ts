@@ -53,11 +53,10 @@ const initiateStripeDonation = async (
 
   const result = await paymentService.createStripePaymentIntent({
     amount,
-    currency: payload.payerEmail ? PaymentCurrency.EUR : PaymentCurrency.EUR,
+    currency: PaymentCurrency.EUR,
     payerEmail: donorEmail,
     payerName: donorName,
-    // donation metadata Stripe-এ পাঠাচ্ছি
-    // webhook-এ এটা ফিরে আসবে
+    userId: payload.userId, // 🔥 add this
   } as any);
 
   // Stripe metadata update করো donation info দিয়ে

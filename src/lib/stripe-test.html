@@ -3,7 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <title>Stripe Test</title>
+
     <script src="https://js.stripe.com/v3/"></script>
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+
     <style>
       * {
         box-sizing: border-box;
@@ -33,23 +36,21 @@
         margin-bottom: 16px;
       }
       label {
-        display: block;
         font-size: 13px;
         color: #555;
         margin-bottom: 6px;
+        display: block;
       }
       input {
         width: 100%;
         padding: 10px 12px;
         border: 1px solid #ddd;
         border-radius: 6px;
-        font-size: 14px;
       }
       #card-element {
         padding: 10px 12px;
         border: 1px solid #ddd;
         border-radius: 6px;
-        background: white;
       }
       button {
         width: 100%;
@@ -58,38 +59,35 @@
         color: white;
         border: none;
         border-radius: 6px;
-        font-size: 15px;
         cursor: pointer;
-        margin-top: 8px;
       }
       button:disabled {
         background: #ccc;
-        cursor: not-allowed;
       }
       #message {
         margin-top: 16px;
         padding: 12px;
         border-radius: 6px;
-        font-size: 14px;
         display: none;
       }
       .success {
         background: #d4edda;
         color: #155724;
-        display: block !important;
+        display: block;
       }
       .error {
         background: #f8d7da;
         color: #721c24;
-        display: block !important;
+        display: block;
       }
       .loading {
         background: #fff3cd;
         color: #856404;
-        display: block !important;
+        display: block;
       }
     </style>
   </head>
+
   <body>
     <div class="card">
       <h2>🐾 Hesteka — Donation Test</h2>
@@ -120,40 +118,51 @@
 
     <script>
       const BACKEND_URL = "http://10.10.5.111:5000/api/v1";
-      const PUBLISHABLE_KEY =
-        "pk_test_51ShzG65v6xjmDo05UhGMIsToDUCvN1B0ZrJlTjiYYNuwQ2xrc4ZnHAhPP3mbMQkGHo5gJqlrlQuobgQpSvLSbZOj00U9EPKZMw";
 
-      const stripe = Stripe(PUBLISHABLE_KEY);
+      const stripe = Stripe(
+        "pk_test_51ShzG65v6xjmDo05UhGMIsToDUCvN1B0ZrJlTjiYYNuwQ2xrc4ZnHAhPP3mbMQkGHo5gJqlrlQuobgQpSvLSbZOj00U9EPKZMw",
+      );
+
       const elements = stripe.elements();
-      const cardElement = elements.create("card", {
-        style: {
-          base: {
-            fontSize: "15px",
-            color: "#333",
-            "::placeholder": { color: "#aaa" },
-          },
-        },
-      });
+      const cardElement = elements.create("card");
       cardElement.mount("#card-element");
+
+      const socket = io("http://10.10.5.111:5000"); // 🔥 connect socket
 
       const btn = document.getElementById("pay-btn");
       const msg = document.getElementById("message");
+
+      let currentPaymentId = null;
 
       function showMessage(text, type) {
         msg.textContent = text;
         msg.className = type;
       }
 
+      // 🔥 listen payment update from backend
+      socket.on("payment:update", (data) => {
+        if (data.paymentIntentId !== currentPaymentId) return;
+
+        if (data.status === "COMPLETED") {
+          showMessage("✅ Payment successful!", "success");
+          btn.disabled = false;
+        }
+
+        if (data.status === "FAILED") {
+          showMessage("❌ Payment failed!", "error");
+          btn.disabled = false;
+        }
+      });
+
       btn.addEventListener("click", async () => {
         btn.disabled = true;
-        showMessage("Processing...", "loading");
+        showMessage("Processing payment...", "loading");
 
         const donorName = document.getElementById("donorName").value;
         const donorEmail = document.getElementById("donorEmail").value;
         const amount = Number(document.getElementById("amount").value);
 
         try {
-          // Step 1 — Backend থেকে clientSecret নাও
           const res = await fetch(`${BACKEND_URL}/donations/stripe/initiate`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -177,7 +186,6 @@
 
           const clientSecret = data.data.clientSecret;
 
-          // Step 2 — Stripe দিয়ে card charge করো
           const { error, paymentIntent } = await stripe.confirmCardPayment(
             clientSecret,
             {
@@ -197,18 +205,14 @@
             return;
           }
 
-          if (paymentIntent.status === "succeeded") {
-            showMessage(
-              `✅ Payment successful! ID: ${paymentIntent.id}`,
-              "success",
-            );
-            cardElement.clear();
-          }
+          // 🔥 IMPORTANT: no success here
+          currentPaymentId = paymentIntent.id;
+
+          showMessage("Waiting for confirmation...", "loading");
         } catch (err) {
           showMessage("Something went wrong. Try again.", "error");
+          btn.disabled = false;
         }
-
-        btn.disabled = false;
       });
     </script>
   </body>
