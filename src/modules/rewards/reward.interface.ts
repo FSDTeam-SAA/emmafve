@@ -24,14 +24,14 @@ export interface IRewardItem extends Document {
   title: string;
   description: string;
   points: number;
-  photo?: {
-    public_id: string;
-    secure_url: string;
-  };
   type: RewardItemType;
   amount?: number;
   category: RewardCategory;
   stock: number;
+  photo?: {
+    public_id: string;
+    secure_url: string;
+  };
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;

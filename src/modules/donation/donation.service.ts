@@ -12,6 +12,7 @@ import {
 } from "../payment/payment.interface";
 import CustomError from "../../helpers/CustomError";
 import { Types } from "mongoose";
+import { any } from "zod";
 
 // Stripe এর webhook থেকে call হবে
 const createDonationFromPayment = async (
@@ -23,6 +24,8 @@ const createDonationFromPayment = async (
   const donationData: any = {
     payment: payment._id,
     amount: payment.amount,
+    method: payment.provider, // stripe or paypal
+    status: payment.status === "completed" ? "completed" : "pending",
     type: payment.metadata?.donationType ?? DonationType.ONE_TIME,
     donorEmail: payment.payerEmail,
     donorName: payment.payerName,
@@ -113,6 +116,8 @@ const capturePayPalDonation = async (
   const donationData: any = {
     payment: payment._id,
     amount: payment.amount,
+    method: "paypal",
+    status: payment.status === "completed" ? "completed" : "pending",
     type: type ?? DonationType.ONE_TIME,
     donorEmail,
     donorName,
@@ -128,9 +133,198 @@ const capturePayPalDonation = async (
   return donation;
 };
 
+const syncPhysicalDonation = async (payload: {
+  amount: number;
+  donorEmail: string;
+  donorName: string;
+  status: "pending" | "completed" | "cancelled";
+  referenceId: string; // ID of the DonationProof
+}) => {
+  const existing = await donationModel.findOne({ referenceId: payload.referenceId });
+  if (existing) {
+    existing.status = payload.status;
+    await existing.save();
+    return existing;
+  }
+
+  return await donationModel.create({
+    amount: payload.amount,
+    method: "collection_point",
+    status: payload.status,
+    donorEmail: payload.donorEmail,
+    donorName: payload.donorName,
+    type: DonationType.ONE_TIME,
+    referenceId: payload.referenceId,
+  });
+};
+
+const getAllDonations = async (req: any) => {
+  const {
+    page: pagebody,
+    limit: limitbody,
+    status,
+    method,
+    search,
+    from,
+    to,
+    sort,
+    sortBy,
+  } = req.query;
+
+  const { page, limit, skip } = (await import("../../utils/pagination")).paginationHelper(
+    pagebody as string,
+    limitbody as string,
+  );
+
+  const filter: any = {};
+
+  if (search) {
+    const searchRegex = new RegExp(search as string, "i");
+    filter.$or = [
+      { donorName: searchRegex },
+      { donorEmail: searchRegex },
+    ];
+  }
+
+  if (method) {
+    filter.method = method;
+  }
+
+  if (from || to) {
+    filter.createdAt = {};
+    if (from) filter.createdAt.$gte = new Date(from as string);
+    if (to) {
+      const toDate = new Date(to as string);
+      toDate.setHours(23, 59, 59, 999);
+      filter.createdAt.$lte = toDate;
+    }
+  }
+
+  
+  // get payment populate pipeline
+  const pipeline: any[] = [
+    {
+      $lookup: {
+        from: "payments",
+        localField: "payment",
+        foreignField: "_id",
+        as: "payment"
+      }
+    },
+    { $unwind: { path: "$payment", preserveNullAndEmptyArrays: true } },
+    {
+      $addFields: {
+        method: { $ifNull: ["$method", "$payment.provider"] }
+      }
+    }
+  ];
+
+  if (status) {
+    filter.status = status;
+  }
+
+  pipeline.push({ $match: filter });
+
+  const sortFields: Record<string, string> = {
+    date: "createdAt",
+    amount: "amount",
+    donor: "donorName",
+  };
+  const sortByValue = typeof sortBy === "string" ? sortBy : "date";
+  const sortField = sortFields[sortByValue.toLowerCase()] ?? "createdAt";
+  const sortOrder = sort === "ascending" ? 1 : -1;
+
+  pipeline.push({ $sort: { [sortField]: sortOrder } });
+
+  const [result] = await donationModel.aggregate([
+    {
+      $facet: {
+        donations: [
+          ...pipeline,
+          { $skip: skip },
+          { $limit: limit }
+        ],
+        totalCount: [
+          ...pipeline,
+          { $count: "count" }
+        ]
+      }
+    }
+  ]);
+
+  const donations = result.donations;
+  const total = result.totalCount[0]?.count || 0;
+
+  return {
+    donations,
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
+};
+
+
+const getSingleDonation = async (id: string) => {
+  const donation = await donationModel.findById(id).populate("payment");
+  if (!donation) {
+    throw new CustomError(404, "Donation not found");
+  }
+  return donation;
+};
+
 export const donationService = {
   createDonationFromPayment,
   initiateStripeDonation,
   initiatePayPalDonation,
   capturePayPalDonation,
+  getAllDonations,
+  getSingleDonation,
+  syncPhysicalDonation,
+  getDonationStats: async () => {
+    const [stats] = await donationModel.aggregate([
+      {
+        $facet: {
+          completedStats: [
+            { $match: { status: "completed" } },
+            {
+              $group: {
+                _id: null,
+                totalCollected: { $sum: "$amount" },
+                totalTransactions: { $sum: 1 },
+                avgBasket: { $avg: "$amount" },
+              },
+            },
+          ],
+          pendingStats: [
+            { $match: { status: "pending" } },
+            {
+              $group: {
+                _id: null,
+                totalPending: { $sum: "$amount" },
+              },
+            },
+          ],
+        },
+      },
+    ]);
+
+    const completed = stats.completedStats[0] || {
+      totalCollected: 0,
+      totalTransactions: 0,
+      avgBasket: 0,
+    };
+    const pending = stats.pendingStats[0] || { totalPending: 0 };
+
+    return {
+      totalTransactions: completed.totalTransactions,
+      totalCollected: completed.totalCollected,
+      returnedToAssos: completed.totalCollected * 0.9, // Demo logic: 90% goes to association
+      pendingAmount: pending.totalPending,
+      averageBasket: completed.avgBasket || 0,
+    };
+  },
 };
+

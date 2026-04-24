@@ -1,5 +1,10 @@
 import mongoose, { Model, Schema } from "mongoose";
-import { DonationProofStatus, IDonationProof } from "./donationProof.interface";
+import {
+  DonationCategory,
+  DonationProofStatus,
+  IDonationProof,
+  RefusalReason,
+} from "./donationProof.interface";
 
 const donationProofSchema = new Schema<IDonationProof>(
   {
@@ -18,6 +23,11 @@ const donationProofSchema = new Schema<IDonationProof>(
       required: true,
       min: 0,
     },
+    category: {
+      type: String,
+      enum: Object.values(DonationCategory),
+      default: DonationCategory.FOOD,
+    },
     photo: {
       public_id: { type: String, required: true },
       secure_url: { type: String, required: true },
@@ -34,6 +44,10 @@ const donationProofSchema = new Schema<IDonationProof>(
     adminNote: {
       type: String,
       trim: true,
+    },
+    refusalReason: {
+      type: String,
+      enum: Object.values(RefusalReason),
     },
   },
   {

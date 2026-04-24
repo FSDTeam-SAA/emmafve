@@ -4,9 +4,14 @@ import { asyncHandler } from "../../utils/asyncHandler";
 import { solidarityService } from "./solidarity.service";
 
 export const getProducts = asyncHandler(async (req: Request, res: Response) => {
-  const products = await solidarityService.getProducts();
+  const { collectionId, limit, pageInfo } = req.query;
+  const data = await solidarityService.getProducts({ 
+    collectionId: collectionId as string | undefined, 
+    limit: limit ? parseInt(limit as string) : undefined,
+    pageInfo: pageInfo as string | undefined
+  });
 
-  ApiResponse.sendSuccess(res, 200, "Products fetched successfully", products);
+  ApiResponse.sendSuccess(res, 200, "Products fetched successfully", data);
 });
 
 export const getCollections = asyncHandler(async (req: Request, res: Response) => {
