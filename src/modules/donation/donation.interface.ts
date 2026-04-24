@@ -22,6 +22,9 @@ export interface IDonation extends Document {
   companyInfo?: IDonationCompanyInfo;
   referenceId?: string;
   status: "pending" | "completed" | "cancelled";
+  receiptId: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 export interface CreateDonationPayload {

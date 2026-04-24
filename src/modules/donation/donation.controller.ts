@@ -113,6 +113,18 @@ const getDonationStats = asyncHandler(async (req: Request, res: Response) => {
   return ApiResponse.sendSuccess(res, 200, "Donation stats fetched successfully", result);
 });
 
+const getDonationByReceiptId = asyncHandler(async (req: Request, res: Response) => {
+  const result = await donationService.getDonationByReceiptId(req.params.receiptId as string);
+  return ApiResponse.sendSuccess(res, 200, "Donation fetched successfully", result);
+});
+
+const sendReceiptEmail = asyncHandler(async (req: Request, res: Response) => {
+  const { donationId } = req.params;
+  const { isFiscal } = req.body;
+  await donationService.sendReceiptEmail(donationId as string, !!isFiscal);
+  return ApiResponse.sendSuccess(res, 200, "Receipt sent successfully to donor");
+});
+
 export const donationController = {
   initiateStripeDonation,
   initiatePayPalDonation,
@@ -120,4 +132,6 @@ export const donationController = {
   getAllDonations,
   getSingleDonation,
   getDonationStats,
+  getDonationByReceiptId,
+  sendReceiptEmail,
 };

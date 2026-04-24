@@ -48,3 +48,17 @@ donationRoute.get(
   allowRole("admin"),
   donationController.getSingleDonation,
 );
+
+donationRoute.get(
+  "/receipt/:receiptId",
+  authGuard,
+  allowRole("admin"),
+  donationController.getDonationByReceiptId,
+);
+
+donationRoute.post(
+  "/:donationId/send-receipt",
+  authGuard,
+  allowRole("admin"),
+  donationController.sendReceiptEmail,
+);

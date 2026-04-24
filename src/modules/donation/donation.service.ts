@@ -12,7 +12,13 @@ import {
 } from "../payment/payment.interface";
 import CustomError from "../../helpers/CustomError";
 import { Types } from "mongoose";
+import PDFDocument from "pdfkit";
+import { mailer } from "../../helpers/nodeMailer";
 import { any } from "zod";
+
+const generateReceiptId = () => {
+  return Math.random().toString(36).substring(2, 10).toUpperCase();
+};
 
 // Stripe এর webhook থেকে call হবে
 const createDonationFromPayment = async (
@@ -36,6 +42,7 @@ const createDonationFromPayment = async (
     donationData.companyInfo = payment.metadata.companyInfo;
   }
 
+  donationData.receiptId = generateReceiptId();
   const donation = await donationModel.create(donationData);
 
   return donation;
@@ -128,6 +135,7 @@ const capturePayPalDonation = async (
     donationData.companyInfo = companyInfo;
   }
 
+  donationData.receiptId = generateReceiptId();
   const donation = await donationModel.create(donationData);
 
   return donation;
@@ -155,6 +163,7 @@ const syncPhysicalDonation = async (payload: {
     donorName: payload.donorName,
     type: DonationType.ONE_TIME,
     referenceId: payload.referenceId,
+    receiptId: generateReceiptId(),
   });
 };
 
@@ -214,7 +223,8 @@ const getAllDonations = async (req: any) => {
     { $unwind: { path: "$payment", preserveNullAndEmptyArrays: true } },
     {
       $addFields: {
-        method: { $ifNull: ["$method", "$payment.provider"] }
+        method: { $ifNull: ["$method", "$payment.provider"] },
+        status: { $cond: { if: { $and: ["$payment", { $ne: ["$payment", null] }] }, then: "$payment.status", else: "$status" } }
       }
     }
   ];
@@ -268,11 +278,29 @@ const getAllDonations = async (req: any) => {
 
 
 const getSingleDonation = async (id: string) => {
-  const donation = await donationModel.findById(id).populate("payment");
+  const donation = await donationModel.findById(id).populate("payment").lean();
   if (!donation) {
     throw new CustomError(404, "Donation not found");
   }
-  return donation;
+
+  // Ensure consistency with the list view logic
+  return {
+    ...donation,
+    method: donation.method || (donation.payment as any)?.provider,
+    status: (donation.payment as any)?.status || donation.status || "pending"
+  };
+};
+
+const getDonationByReceiptId = async (receiptId: string) => {
+  const donation = await donationModel.findOne({ receiptId }).populate("payment").lean();
+  if (!donation) {
+    throw new CustomError(404, "Donation not found");
+  }
+  return {
+    ...donation,
+    method: donation.method || (donation.payment as any)?.provider,
+    status: (donation.payment as any)?.status || donation.status || "pending"
+  };
 };
 
 export const donationService = {
@@ -282,6 +310,7 @@ export const donationService = {
   capturePayPalDonation,
   getAllDonations,
   getSingleDonation,
+  getDonationByReceiptId,
   syncPhysicalDonation,
   getDonationStats: async () => {
     const [stats] = await donationModel.aggregate([
@@ -321,10 +350,89 @@ export const donationService = {
     return {
       totalTransactions: completed.totalTransactions,
       totalCollected: completed.totalCollected,
-      returnedToAssos: completed.totalCollected * 0.9, // Demo logic: 90% goes to association
+      returnedToAssos: completed.totalCollected * 0.9,
       pendingAmount: pending.totalPending,
       averageBasket: completed.avgBasket || 0,
     };
+  },
+
+  sendReceiptEmail: async (donationId: string, isFiscal: boolean) => {
+    const donation = await donationService.getSingleDonation(donationId);
+    if (!donation) throw new CustomError(404, "Donation not found");
+
+    const doc = new PDFDocument({ margin: 50 });
+    const buffers: Buffer[] = [];
+
+    doc.on("data", (chunk) => buffers.push(chunk));
+    
+    return new Promise<void>((resolve, reject) => {
+      doc.on("end", async () => {
+        try {
+          const pdfBuffer = Buffer.concat(buffers);
+          
+          await mailer({
+            email: donation.donorEmail,
+            subject: isFiscal ? "Official Fiscal Receipt - HESTEKA" : "Donation Receipt - HESTEKA",
+            template: `
+              <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e8ddd0; border-radius: 12px;">
+                <h2 style="color: #3a2a1a;">Thank you, ${donation.donorName}!</h2>
+                <p>Please find attached your ${isFiscal ? "official fiscal receipt" : "donation receipt"} for your contribution of <strong>${donation.amount}€</strong>.</p>
+                <p style="font-size: 12px; color: #9a8a7a;">If you have any questions, please contact our support team.</p>
+                <hr style="border: none; border-top: 1px dashed #e8ddd0; margin: 20px 0;">
+                <p style="font-weight: bold; color: #3a2a1a;">HESTEKA ASSOCIATION</p>
+              </div>
+            `,
+            attachments: [
+              {
+                filename: `${isFiscal ? "fiscal_" : ""}receipt_${donation._id?.toString().slice(-8)}.pdf`,
+                content: pdfBuffer,
+              },
+            ],
+          });
+          resolve();
+        } catch (err) {
+          reject(err);
+        }
+      });
+
+      // PDF Content Generation
+      doc.fontSize(20).text("HESTEKA", { align: "center" });
+      doc.fontSize(10).text("ASSOCIATION", { align: "center" }).moveDown(2);
+      
+      doc.fontSize(16).text(isFiscal ? "OFFICIAL FISCAL RECEIPT" : "DONATION RECEIPT", { align: "center" }).moveDown(1);
+      doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke("#e8ddd0").moveDown(2);
+
+      const tableTop = doc.y;
+      doc.fontSize(10).fillColor("#9a8a7a").text("DATE:", 50, tableTop);
+      doc.fillColor("#3a2a1a").text(new Date(donation.createdAt).toLocaleDateString(), 150, tableTop);
+
+      doc.fillColor("#9a8a7a").text("RECEIPT ID:", 50, tableTop + 20);
+      doc.fillColor("#3a2a1a").text(donation.receiptId || donation._id?.toString().toUpperCase(), 150, tableTop + 20);
+
+      doc.fillColor("#9a8a7a").text("DONATOR:", 50, tableTop + 40);
+      doc.fillColor("#3a2a1a").text(donation.donorName, 150, tableTop + 40);
+
+      doc.fillColor("#9a8a7a").text("METHOD:", 50, tableTop + 60);
+      doc.fillColor("#3a2a1a").text(donation.method.toUpperCase(), 150, tableTop + 60);
+
+      doc.fillColor("#9a8a7a").text("STATUS:", 50, tableTop + 80);
+      doc.fillColor("#3a2a1a").text(donation.status.toUpperCase(), 150, tableTop + 80);
+
+      doc.moveDown(4);
+      doc.rect(50, doc.y, 500, 60).fill("#fcfaf7").stroke("#e8ddd0");
+      doc.fillColor("#3a2a1a").fontSize(12).text("TOTAL AMOUNT", 50, doc.y + 15, { align: "center", width: 500 });
+      doc.fontSize(24).font("Helvetica-Bold").text(`${donation.amount}€`, 50, doc.y + 5, { align: "center", width: 500 });
+
+      doc.moveDown(6);
+      doc.fontSize(8).font("Helvetica-Oblique").fillColor("#9a8a7a").text(
+        isFiscal 
+          ? "This fiscal receipt is issued in accordance with current tax laws. It entitles the donor to a tax deduction for their charitable contribution."
+          : "Thank you for your generous donation. Your support helps us continue our mission to help animals in need.",
+        { align: "center" }
+      );
+
+      doc.end();
+    });
   },
 };
 
