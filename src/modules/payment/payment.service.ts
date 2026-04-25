@@ -112,7 +112,7 @@ const getPayPalAccessToken = async (): Promise<string> => {
 
 const createPayPalOrder = async (
   payload: CreatePayPalOrderPayload & { userId?: string | null },
-): Promise<{ orderId: string }> => {
+): Promise<{ orderId: string; approvalUrl: string }> => {
   const { amount, currency, payerEmail, payerName, userId } = payload;
   const { mode } = config.paypal;
 
@@ -149,10 +149,19 @@ const createPayPalOrder = async (
     throw new CustomError(500, "Failed to create PayPal order");
   }
 
-  // ✅ Stripe এর মতো — PENDING payment এখনই create
+  // ✅ approval URL বের করো
+  const approvalUrl = data.links?.find(
+    (link: any) => link.rel === "approve",
+  )?.href;
+
+  if (!approvalUrl) {
+    throw new CustomError(500, "PayPal approval URL not found");
+  }
+
+  // PENDING payment create
   await paymentModel.create({
     provider: PaymentProvider.PAYPAL,
-    providerTransactionId: data.id, // PayPal orderId
+    providerTransactionId: data.id,
     amount,
     currency,
     status: PaymentStatus.PENDING,
@@ -162,7 +171,7 @@ const createPayPalOrder = async (
     metadata: { payerEmail, payerName },
   });
 
-  return { orderId: data.id };
+  return { orderId: data.id, approvalUrl }; // ✅ approvalUrl return
 };
 
 // ✅ শুধু PayPal side capture করবে — DB তে লিখবে না
