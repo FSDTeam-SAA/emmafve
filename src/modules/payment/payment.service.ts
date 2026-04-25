@@ -191,6 +191,7 @@ const capturePayPalOrder = async (
   );
 
   const data = await response.json();
+  console.log("PayPal capture response:", JSON.stringify(data, null, 2));
 
   if (!response.ok) {
     throw new CustomError(500, "Failed to capture PayPal order");
