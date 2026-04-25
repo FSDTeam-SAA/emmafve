@@ -11,42 +11,43 @@ import {
   PaymentProvider,
 } from "../payment/payment.interface";
 import CustomError from "../../helpers/CustomError";
-import { Types } from "mongoose";
+import mongoose, { Types } from "mongoose";
 import PDFDocument from "pdfkit";
 import { mailer } from "../../helpers/nodeMailer";
 import { any } from "zod";
+import { paymentModel } from "../payment/payment.models";
 
 const generateReceiptId = () => {
   return Math.random().toString(36).substring(2, 10).toUpperCase();
 };
 
 // Stripe এর webhook থেকে call হবে
-const createDonationFromPayment = async (
-  payment: IPayment,
-): Promise<IDonation> => {
-  const existing = await donationModel.findOne({ payment: payment._id });
-  if (existing) return existing;
+// const createDonationFromPayment = async (
+//   payment: IPayment,
+// ): Promise<IDonation> => {
+//   const existing = await donationModel.findOne({ payment: payment._id });
+//   if (existing) return existing;
 
-  const donationData: any = {
-    payment: payment._id,
-    amount: payment.amount,
-    method: payment.provider, // stripe or paypal
-    status: payment.status === "completed" ? "completed" : "pending",
-    type: payment.metadata?.donationType ?? DonationType.ONE_TIME,
-    donorEmail: payment.payerEmail,
-    donorName: payment.payerName,
-    isCompanyDonation: payment.metadata?.isCompanyDonation ?? false,
-  };
+//   const donationData: any = {
+//     payment: payment._id,
+//     amount: payment.amount,
+//     method: payment.provider, // stripe or paypal
+//     status: payment.status === "completed" ? "completed" : "pending",
+//     type: payment.metadata?.donationType ?? DonationType.ONE_TIME,
+//     donorEmail: payment.payerEmail,
+//     donorName: payment.payerName,
+//     isCompanyDonation: payment.metadata?.isCompanyDonation ?? false,
+//   };
 
-  if (payment.metadata?.companyInfo) {
-    donationData.companyInfo = payment.metadata.companyInfo;
-  }
+//   if (payment.metadata?.companyInfo) {
+//     donationData.companyInfo = payment.metadata.companyInfo;
+//   }
 
-  donationData.receiptId = generateReceiptId();
-  const donation = await donationModel.create(donationData);
+//   donationData.receiptId = generateReceiptId();
+//   const donation = await donationModel.create(donationData);
 
-  return donation;
-};
+//   return donation;
+// };
 
 // Stripe donation শুরু করা
 const initiateStripeDonation = async (
@@ -59,31 +60,45 @@ const initiateStripeDonation = async (
     type,
     isCompanyDonation,
     companyInfo,
+    userId,
   } = payload;
 
+  // 1️⃣ create payment intent + payment PENDING
   const result = await paymentService.createStripePaymentIntent({
     amount,
     currency: PaymentCurrency.EUR,
     payerEmail: donorEmail,
     payerName: donorName,
-    userId: payload.userId, // 🔥 add this
+    userId,
   } as any);
 
-  // Stripe metadata update করো donation info দিয়ে
-  const { stripe } = await import("../../lib/stripe");
-  await stripe.paymentIntents.update(result.paymentIntentId, {
-    metadata: {
-      payerEmail: donorEmail,
-      payerName: donorName,
-      donationType: type,
-      isCompanyDonation: String(isCompanyDonation ?? false),
-      companyInfo: companyInfo ? JSON.stringify(companyInfo) : "",
-    },
+  // 2️⃣ payment fetch
+  const payment = await paymentModel.findOne({
+    providerTransactionId: result.paymentIntentId,
   });
+
+  if (!payment) {
+    throw new CustomError(404, "Payment not found");
+  }
+
+  // 3️⃣ donation create (PENDING)
+  const donationData: any = {
+    payment: payment._id,
+    amount,
+    type,
+    donorEmail,
+    donorName,
+    isCompanyDonation: isCompanyDonation ?? false,
+  };
+
+  if (companyInfo) {
+    donationData.companyInfo = companyInfo;
+  }
+
+  await donationModel.create(donationData);
 
   return result;
 };
-
 // PayPal donation শুরু করা
 const initiatePayPalDonation = async (
   payload: CreateDonationPayload,
@@ -147,7 +162,9 @@ const syncPhysicalDonation = async (payload: {
   status: "pending" | "completed" | "cancelled";
   referenceId: string; // ID of the DonationProof
 }) => {
-  const existing = await donationModel.findOne({ referenceId: payload.referenceId });
+  const existing = await donationModel.findOne({
+    referenceId: payload.referenceId,
+  });
   if (existing) {
     existing.status = payload.status;
     await existing.save();
@@ -179,19 +196,15 @@ const getAllDonations = async (req: any) => {
     sortBy,
   } = req.query;
 
-  const { page, limit, skip } = (await import("../../utils/pagination")).paginationHelper(
-    pagebody as string,
-    limitbody as string,
-  );
+  const { page, limit, skip } = (
+    await import("../../utils/pagination")
+  ).paginationHelper(pagebody as string, limitbody as string);
 
   const filter: any = {};
 
   if (search) {
     const searchRegex = new RegExp(search as string, "i");
-    filter.$or = [
-      { donorName: searchRegex },
-      { donorEmail: searchRegex },
-    ];
+    filter.$or = [{ donorName: searchRegex }, { donorEmail: searchRegex }];
   }
 
   if (method) {
@@ -208,7 +221,6 @@ const getAllDonations = async (req: any) => {
     }
   }
 
-  
   // get payment populate pipeline
   const pipeline: any[] = [
     {
@@ -216,16 +228,22 @@ const getAllDonations = async (req: any) => {
         from: "payments",
         localField: "payment",
         foreignField: "_id",
-        as: "payment"
-      }
+        as: "payment",
+      },
     },
     { $unwind: { path: "$payment", preserveNullAndEmptyArrays: true } },
     {
       $addFields: {
         method: { $ifNull: ["$method", "$payment.provider"] },
-        status: { $cond: { if: { $and: ["$payment", { $ne: ["$payment", null] }] }, then: "$payment.status", else: "$status" } }
-      }
-    }
+        status: {
+          $cond: {
+            if: { $and: ["$payment", { $ne: ["$payment", null] }] },
+            then: "$payment.status",
+            else: "$status",
+          },
+        },
+      },
+    },
   ];
 
   if (status) {
@@ -248,17 +266,10 @@ const getAllDonations = async (req: any) => {
   const [result] = await donationModel.aggregate([
     {
       $facet: {
-        donations: [
-          ...pipeline,
-          { $skip: skip },
-          { $limit: limit }
-        ],
-        totalCount: [
-          ...pipeline,
-          { $count: "count" }
-        ]
-      }
-    }
+        donations: [...pipeline, { $skip: skip }, { $limit: limit }],
+        totalCount: [...pipeline, { $count: "count" }],
+      },
+    },
   ]);
 
   const donations = result.donations;
@@ -275,7 +286,6 @@ const getAllDonations = async (req: any) => {
   };
 };
 
-
 const getSingleDonation = async (id: string) => {
   const donation = await donationModel.findById(id).populate("payment").lean();
   if (!donation) {
@@ -286,24 +296,26 @@ const getSingleDonation = async (id: string) => {
   return {
     ...donation,
     method: donation.method || (donation.payment as any)?.provider,
-    status: (donation.payment as any)?.status || donation.status || "pending"
+    status: (donation.payment as any)?.status || donation.status || "pending",
   };
 };
 
 const getDonationByReceiptId = async (receiptId: string) => {
-  const donation = await donationModel.findOne({ receiptId }).populate("payment").lean();
+  const donation = await donationModel
+    .findOne({ receiptId })
+    .populate("payment")
+    .lean();
   if (!donation) {
     throw new CustomError(404, "Donation not found");
   }
   return {
     ...donation,
     method: donation.method || (donation.payment as any)?.provider,
-    status: (donation.payment as any)?.status || donation.status || "pending"
+    status: (donation.payment as any)?.status || donation.status || "pending",
   };
 };
 
 export const donationService = {
-  createDonationFromPayment,
   initiateStripeDonation,
   initiatePayPalDonation,
   capturePayPalDonation,
@@ -363,15 +375,17 @@ export const donationService = {
     const buffers: Buffer[] = [];
 
     doc.on("data", (chunk) => buffers.push(chunk));
-    
+
     return new Promise<void>((resolve, reject) => {
       doc.on("end", async () => {
         try {
           const pdfBuffer = Buffer.concat(buffers);
-          
+
           await mailer({
             email: donation.donorEmail,
-            subject: isFiscal ? "Official Fiscal Receipt - HESTEKA" : "Donation Receipt - HESTEKA",
+            subject: isFiscal
+              ? "Official Fiscal Receipt - HESTEKA"
+              : "Donation Receipt - HESTEKA",
             template: `
               <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e8ddd0; border-radius: 12px;">
                 <h2 style="color: #3a2a1a;">Thank you, ${donation.donorName}!</h2>
@@ -397,41 +411,70 @@ export const donationService = {
       // PDF Content Generation
       doc.fontSize(20).text("HESTEKA", { align: "center" });
       doc.fontSize(10).text("ASSOCIATION", { align: "center" }).moveDown(2);
-      
-      doc.fontSize(16).text(isFiscal ? "OFFICIAL FISCAL RECEIPT" : "DONATION RECEIPT", { align: "center" }).moveDown(1);
+
+      doc
+        .fontSize(16)
+        .text(isFiscal ? "OFFICIAL FISCAL RECEIPT" : "DONATION RECEIPT", {
+          align: "center",
+        })
+        .moveDown(1);
       doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke("#e8ddd0").moveDown(2);
 
       const tableTop = doc.y;
       doc.fontSize(10).fillColor("#9a8a7a").text("DATE:", 50, tableTop);
-      doc.fillColor("#3a2a1a").text(new Date(donation.createdAt).toLocaleDateString(), 150, tableTop);
+      doc
+        .fillColor("#3a2a1a")
+        .text(new Date(donation.createdAt).toLocaleDateString(), 150, tableTop);
 
       doc.fillColor("#9a8a7a").text("RECEIPT ID:", 50, tableTop + 20);
-      doc.fillColor("#3a2a1a").text(donation.receiptId || donation._id?.toString().toUpperCase(), 150, tableTop + 20);
+      doc
+        .fillColor("#3a2a1a")
+        .text(
+          donation.receiptId || donation._id?.toString().toUpperCase(),
+          150,
+          tableTop + 20,
+        );
 
       doc.fillColor("#9a8a7a").text("DONATOR:", 50, tableTop + 40);
       doc.fillColor("#3a2a1a").text(donation.donorName, 150, tableTop + 40);
 
       doc.fillColor("#9a8a7a").text("METHOD:", 50, tableTop + 60);
-      doc.fillColor("#3a2a1a").text(donation.method.toUpperCase(), 150, tableTop + 60);
+      doc
+        .fillColor("#3a2a1a")
+        .text(donation.method.toUpperCase(), 150, tableTop + 60);
 
       doc.fillColor("#9a8a7a").text("STATUS:", 50, tableTop + 80);
-      doc.fillColor("#3a2a1a").text(donation.status.toUpperCase(), 150, tableTop + 80);
+      doc
+        .fillColor("#3a2a1a")
+        .text(donation.status.toUpperCase(), 150, tableTop + 80);
 
       doc.moveDown(4);
       doc.rect(50, doc.y, 500, 60).fill("#fcfaf7").stroke("#e8ddd0");
-      doc.fillColor("#3a2a1a").fontSize(12).text("TOTAL AMOUNT", 50, doc.y + 15, { align: "center", width: 500 });
-      doc.fontSize(24).font("Helvetica-Bold").text(`${donation.amount}€`, 50, doc.y + 5, { align: "center", width: 500 });
+      doc
+        .fillColor("#3a2a1a")
+        .fontSize(12)
+        .text("TOTAL AMOUNT", 50, doc.y + 15, { align: "center", width: 500 });
+      doc
+        .fontSize(24)
+        .font("Helvetica-Bold")
+        .text(`${donation.amount}€`, 50, doc.y + 5, {
+          align: "center",
+          width: 500,
+        });
 
       doc.moveDown(6);
-      doc.fontSize(8).font("Helvetica-Oblique").fillColor("#9a8a7a").text(
-        isFiscal 
-          ? "This fiscal receipt is issued in accordance with current tax laws. It entitles the donor to a tax deduction for their charitable contribution."
-          : "Thank you for your generous donation. Your support helps us continue our mission to help animals in need.",
-        { align: "center" }
-      );
+      doc
+        .fontSize(8)
+        .font("Helvetica-Oblique")
+        .fillColor("#9a8a7a")
+        .text(
+          isFiscal
+            ? "This fiscal receipt is issued in accordance with current tax laws. It entitles the donor to a tax deduction for their charitable contribution."
+            : "Thank you for your generous donation. Your support helps us continue our mission to help animals in need.",
+          { align: "center" },
+        );
 
       doc.end();
     });
   },
 };
-

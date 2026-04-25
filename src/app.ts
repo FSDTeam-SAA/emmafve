@@ -18,7 +18,7 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:5173",
-  "http://10.10.5.111:3000", 
+  "http://10.10.5.111:3000",
 ].filter(Boolean);
 
 if (config.env === "development") {
@@ -47,15 +47,21 @@ app.get("/api/v1/ping", (req: Request, res: Response) => {
   });
 });
 app.use(cookieParser());
+// Stripe Webhook needs raw body
+app.use("/api/v1/webhook/stripe", express.raw({ type: "application/json" }));
+
+// Conditional body parser to skip webhook route
 app.use((req, res, next) => {
-  if (req.originalUrl === "/api/v1/webhook/stripe") {
-    express.raw({ type: "application/json" })(req, res, next);
-  } else {
-    express.json()(req, res, next);
+  if (req.originalUrl.includes("/webhook/stripe")) {
+    return next();
   }
+  express.json()(req, res, next);
 });
 app.use(express.urlencoded({ extended: true }));
-app.use("/stamps", express.static(path.join(process.cwd(), "public", "stamps")));
+app.use(
+  "/stamps",
+  express.static(path.join(process.cwd(), "public", "stamps")),
+);
 
 app.use("/api/v1", routes);
 

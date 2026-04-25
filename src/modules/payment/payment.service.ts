@@ -32,7 +32,7 @@ const createStripePaymentIntent = async (
     throw new CustomError(500, "Failed to create payment intent");
   }
 
-  // ✅ PENDING create
+  // ✅ PAYMENT PENDING
   await paymentModel.create({
     provider: PaymentProvider.STRIPE,
     providerTransactionId: paymentIntent.id,

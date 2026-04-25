@@ -5,6 +5,8 @@ import { PaymentStatus } from "../modules/payment/payment.interface";
 import { donationService } from "../modules/donation/donation.service";
 import config from "../config";
 import { getIo } from "../socket/server";
+import mongoose from "mongoose";
+import { donationModel } from "../modules/donation/donation.models";
 
 export const stripeWebhookHandler = async (
   req: Request,
@@ -35,48 +37,78 @@ export const stripeWebhookHandler = async (
   try {
     switch (event.type) {
       case "payment_intent.succeeded": {
-        const paymentIntent = event.data.object;
+        const session = await mongoose.startSession();
+        session.startTransaction();
 
-        const payment = await paymentService.handleStripeWebhook(
-          paymentIntent.id,
-          PaymentStatus.COMPLETED,
-          paymentIntent.metadata,
-          paymentIntent.amount,
-          paymentIntent.currency,
-        );
+        try {
+          const paymentIntent = event.data.object;
 
-        await donationService.createDonationFromPayment(payment);
+          const payment = await paymentService.handleStripeWebhook(
+            paymentIntent.id,
+            PaymentStatus.COMPLETED,
+            paymentIntent.metadata,
+            paymentIntent.amount,
+            paymentIntent.currency,
+          );
 
-        // 🔥 SOCKET EMIT
-        const io = getIo();
-        if (payment.user) {
-          io.to(payment.user.toString()).emit("payment:update", {
-            status: "COMPLETED",
+          // 🔥 update donation
+          await donationModel.updateOne(
+            { payment: payment._id },
+            { $set: { status: "COMPLETED" } },
+            { session },
+          );
+
+          const io = getIo();
+
+          io.to(payment.payerEmail).emit("payment:update", {
             paymentIntentId: paymentIntent.id,
+            status: "COMPLETED",
           });
+
+          await session.commitTransaction();
+          session.endSession();
+        } catch (err) {
+          await session.abortTransaction();
+          session.endSession();
+          throw err;
         }
 
         break;
       }
 
       case "payment_intent.payment_failed": {
-        const paymentIntent = event.data.object;
+        const session = await mongoose.startSession();
+        session.startTransaction();
 
-        const payment = await paymentService.handleStripeWebhook(
-          paymentIntent.id,
-          PaymentStatus.FAILED,
-          paymentIntent.metadata,
-          paymentIntent.amount,
-          paymentIntent.currency,
-        );
+        try {
+          const paymentIntent = event.data.object;
 
-        // 🔥 SOCKET EMIT
-        const io = getIo();
-        if (payment.user) {
-          io.to(payment.user.toString()).emit("payment:update", {
-            status: "FAILED",
+          const payment = await paymentService.handleStripeWebhook(
+            paymentIntent.id,
+            PaymentStatus.FAILED,
+            paymentIntent.metadata,
+            paymentIntent.amount,
+            paymentIntent.currency,
+          );
+
+          await donationModel.updateOne(
+            { payment: payment._id },
+            { $set: { status: "FAILED" } },
+            { session },
+          );
+
+          const io = getIo();
+
+          io.to(payment.payerEmail).emit("payment:update", {
             paymentIntentId: paymentIntent.id,
+            status: "FAILED",
           });
+          await session.commitTransaction();
+          session.endSession();
+        } catch (err) {
+          await session.abortTransaction();
+          session.endSession();
+          throw err;
         }
 
         break;
