@@ -111,9 +111,9 @@ const getPayPalAccessToken = async (): Promise<string> => {
 };
 
 const createPayPalOrder = async (
-  payload: CreatePayPalOrderPayload,
+  payload: CreatePayPalOrderPayload & { userId?: string | null },
 ): Promise<{ orderId: string }> => {
-  const { amount, currency, payerEmail, payerName } = payload;
+  const { amount, currency, payerEmail, payerName, userId } = payload;
   const { mode } = config.paypal;
 
   const baseUrl =
@@ -149,13 +149,27 @@ const createPayPalOrder = async (
     throw new CustomError(500, "Failed to create PayPal order");
   }
 
+  // ✅ Stripe এর মতো — PENDING payment এখনই create
+  await paymentModel.create({
+    provider: PaymentProvider.PAYPAL,
+    providerTransactionId: data.id, // PayPal orderId
+    amount,
+    currency,
+    status: PaymentStatus.PENDING,
+    payerEmail,
+    payerName,
+    user: userId || null,
+    metadata: { payerEmail, payerName },
+  });
+
   return { orderId: data.id };
 };
 
+// ✅ শুধু PayPal side capture করবে — DB তে লিখবে না
 const capturePayPalOrder = async (
   payload: CapturePayPalOrderPayload,
-): Promise<IPayment> => {
-  const { orderId, payerEmail, payerName } = payload;
+): Promise<{ captureId: string; orderId: string }> => {
+  const { orderId } = payload;
   const { mode } = config.paypal;
 
   const baseUrl =
@@ -183,27 +197,25 @@ const capturePayPalOrder = async (
   }
 
   const captureId = data.purchase_units?.[0]?.payments?.captures?.[0]?.id;
-  const capturedAmount =
-    data.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.value;
-  const capturedCurrency =
-    data.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.currency_code;
 
   if (!captureId) {
     throw new CustomError(500, "PayPal capture ID not found");
   }
 
-  const payment = await paymentModel.create({
-    provider: PaymentProvider.PAYPAL,
-    providerTransactionId: captureId,
-    amount: parseFloat(capturedAmount),
-    currency: capturedCurrency.toLowerCase() as PaymentCurrency,
-    status: PaymentStatus.COMPLETED,
-    payerEmail,
-    payerName,
-    metadata: data,
-  });
+  // ✅ captureId টা orderId এর সাথে link করতে payment record update
+  await paymentModel.findOneAndUpdate(
+    {
+      provider: PaymentProvider.PAYPAL,
+      providerTransactionId: orderId,
+    },
+    {
+      $set: {
+        captureId, // নতুন field — webhook এ এটা দিয়ে match করবো
+      },
+    },
+  );
 
-  return payment;
+  return { captureId, orderId };
 };
 
 const handleWebhookPayment = async (

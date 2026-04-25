@@ -27,6 +27,7 @@ export interface IPayment extends Document {
   payerName: string;
   metadata?: Record<string, any>;
   user?: Types.ObjectId | null;
+  captureId?: string;
 }
 
 export interface CreateStripePaymentIntentPayload {
@@ -38,7 +39,7 @@ export interface CreateStripePaymentIntentPayload {
 }
 
 export interface CreatePayPalOrderPayload {
-  amount: number;
+  amount: number ;
   currency: PaymentCurrency;
   payerEmail: string;
   payerName: string;

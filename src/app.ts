@@ -51,9 +51,14 @@ app.use(cookieParser());
 // Stripe Webhook needs raw body
 app.use("/api/v1/webhook/stripe", express.raw({ type: "application/json" }));
 
+app.use("/api/v1/webhook/paypal", express.raw({ type: "application/json" }));
+
 // Conditional body parser to skip webhook route
 app.use((req, res, next) => {
-  if (req.originalUrl.includes("/webhook/stripe")) {
+  if (
+    req.originalUrl.includes("/webhook/stripe") ||
+    req.originalUrl.includes("/webhook/paypal")
+  ) {
     return next();
   }
   express.json()(req, res, next);

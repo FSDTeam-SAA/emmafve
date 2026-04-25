@@ -1,4 +1,5 @@
 // modules/user/user.service.ts
+import { Types } from "mongoose";
 import { userModel } from "./user.models";
 import CustomError from "../../helpers/CustomError";
 import { deleteCloudinary, uploadCloudinary } from "../../helpers/cloudinary";
@@ -7,7 +8,10 @@ import { paginationHelper } from "../../utils/pagination";
 import { notificationService } from "../notifications/notification.service";
 import { NotificationType } from "../notifications/notification.interface";
 import { mailer } from "../../helpers/nodeMailer";
-import { partnerApprovalEmailTemplate, partnerRejectionEmailTemplate } from "../../tempaletes/partner.templates";
+import {
+  partnerApprovalEmailTemplate,
+  partnerRejectionEmailTemplate,
+} from "../../tempaletes/partner.templates";
 
 export const userService = {
   //get all users
@@ -33,7 +37,7 @@ export const userService = {
     if (roleParam && !allowedRoles.includes(roleParam)) {
       throw new CustomError(
         400,
-        `Invalid role "${roleParam}". Allowed roles: ${allowedRoles.join(", ")}`
+        `Invalid role "${roleParam}". Allowed roles: ${allowedRoles.join(", ")}`,
       );
     }
 
@@ -48,7 +52,7 @@ export const userService = {
     if (statusParam && !allowedStatuses.includes(statusParam)) {
       throw new CustomError(
         400,
-        `Invalid status "${statusParam}". Allowed status: ${allowedStatuses.join(", ")}`
+        `Invalid status "${statusParam}". Allowed status: ${allowedStatuses.join(", ")}`,
       );
     }
 
@@ -71,15 +75,24 @@ export const userService = {
       };
 
       if (from && !isValidDate(from)) {
-        throw new CustomError(400, "Invalid 'from' date. Format must be YYYY-MM-DD or ISO");
+        throw new CustomError(
+          400,
+          "Invalid 'from' date. Format must be YYYY-MM-DD or ISO",
+        );
       }
 
       if (to && !isValidDate(to)) {
-        throw new CustomError(400, "Invalid 'to' date. Format must be YYYY-MM-DD or ISO");
+        throw new CustomError(
+          400,
+          "Invalid 'to' date. Format must be YYYY-MM-DD or ISO",
+        );
       }
 
       if (from && to && new Date(from as string) > new Date(to as string)) {
-        throw new CustomError(400, "'from' date cannot be greater than 'to' date");
+        throw new CustomError(
+          400,
+          "'from' date cannot be greater than 'to' date",
+        );
       }
 
       filter.createdAt = {};
@@ -98,7 +111,10 @@ export const userService = {
     }
 
     if (sort && sort !== "ascending" && sort !== "descending") {
-      throw new CustomError(400, "Invalid sort value. Must be 'ascending' or 'descending'");
+      throw new CustomError(
+        400,
+        "Invalid sort value. Must be 'ascending' or 'descending'",
+      );
     }
 
     const sortFields: Record<string, string> = {
@@ -112,12 +128,22 @@ export const userService = {
     const sortByValue = typeof sortBy === "string" ? sortBy : "date";
     const sortField = sortFields[sortByValue.toLowerCase()];
     if (!sortField) {
-      throw new CustomError(400, `Invalid sortBy value. Must be one of: ${Object.keys(sortFields).join(", ")}`);
+      throw new CustomError(
+        400,
+        `Invalid sortBy value. Must be one of: ${Object.keys(sortFields).join(", ")}`,
+      );
     }
     const sortOrder = sort === "ascending" ? 1 : -1;
 
     const [users, totalUsers] = await Promise.all([
-      userModel.find(filter).sort({ [sortField]: sortOrder }).skip(skip).limit(limit).select("-password -passwordResetToken -passwordResetExpire -refreshToken -__v -createdAt -updatedAt -emailVerifiedAt -emailVerifiedOtp -verificationOtp -verificationOtpExpire -isDeleted -deletedAt -rememberMe"),
+      userModel
+        .find(filter)
+        .sort({ [sortField]: sortOrder })
+        .skip(skip)
+        .limit(limit)
+        .select(
+          "-password -passwordResetToken -passwordResetExpire -refreshToken -__v -createdAt -updatedAt -emailVerifiedAt -emailVerifiedOtp -verificationOtp -verificationOtpExpire -isDeleted -deletedAt -rememberMe",
+        ),
       userModel.countDocuments(filter),
     ]);
 
@@ -134,7 +160,11 @@ export const userService = {
 
   //get single user
   async getUser(userId: string) {
-    const user = await userModel.findOne({ _id: userId }).select("-password -passwordResetToken -passwordResetExpire -refreshToken -__v -createdAt -updatedAt -emailVerifiedAt -emailVerifiedOtp -verificationOtp -verificationOtpExpire -isDeleted -deletedAt -rememberMe ");
+    const user = await userModel
+      .findOne({ _id: userId })
+      .select(
+        "-password -passwordResetToken -passwordResetExpire -refreshToken -__v -createdAt -updatedAt -emailVerifiedAt -emailVerifiedOtp -verificationOtp -verificationOtpExpire -isDeleted -deletedAt -rememberMe",
+      );
     if (!user) throw new CustomError(400, "User not found");
     return user;
   },
@@ -142,14 +172,19 @@ export const userService = {
   //get my profile
   async getmyprofile(req: any) {
     const { email } = req?.user as { email: string };
-    const user = await userModel.findOne({ email: email }).select("-password -passwordResetToken -passwordResetExpire -refreshToken -__v -createdAt -updatedAt -emailVerifiedAt -emailVerifiedOtp -verificationOtp -verificationOtpExpire -isDeleted -deletedAt -rememberMe ");
+    const user = await userModel
+      .findOne({ email: email })
+      .select(
+        "-password -passwordResetToken -passwordResetExpire -refreshToken -__v -createdAt -updatedAt -emailVerifiedAt -emailVerifiedOtp -verificationOtp -verificationOtpExpire -isDeleted -deletedAt -rememberMe",
+      );
     if (!user) throw new CustomError(400, "User not found");
     return user;
   },
 
   //update user
   async updateUser(req: any) {
-    const { latitude, longitude, locationAddress, ...data } = req.body as UpdateUserPayload;
+    const { latitude, longitude, locationAddress, ...data } =
+      req.body as UpdateUserPayload;
     const { email, role } = req?.user as { email: string; role: string };
     const image = req?.file as Express.Multer.File;
 
@@ -162,7 +197,7 @@ export const userService = {
         if (![status.ACTIVE, status.INACTIVE].includes(data.status as status)) {
           throw new CustomError(
             403,
-            `You are not allowed to set status to '${data.status}'`
+            `You are not allowed to set status to '${data.status}'`,
           );
         }
       }
@@ -179,10 +214,14 @@ export const userService = {
       updateData["location.address"] = locationAddress;
     }
 
-    const user = await userModel.findOneAndUpdate({ email: email }, { $set: updateData }, {
-      returnDocument: "after",
-      runValidators: true,
-    });
+    const user = await userModel.findOneAndUpdate(
+      { email: email },
+      { $set: updateData },
+      {
+        returnDocument: "after",
+        runValidators: true,
+      },
+    );
     if (!user) throw new CustomError(400, "User not found");
 
     if (image) {
@@ -197,22 +236,33 @@ export const userService = {
     return user;
   },
 
-  //update user status by admin 
+  //update user status by admin
   async updateStatus(req: any) {
     const { userId } = req?.params as { userId: string };
     const { status: newStatus } = req.body as { status: status };
 
-    const user = await userModel.findOneAndUpdate({ _id: userId }, { status: newStatus }, {
-      returnDocument: "after",
-    }).select("-password -passwordResetToken -passwordResetExpire -refreshToken -__v -createdAt -updatedAt -emailVerifiedAt -emailVerifiedOtp -verificationOtp -isDeleted");
+    const user = await userModel
+      .findOneAndUpdate(
+        { _id: userId },
+        { status: newStatus },
+        {
+          returnDocument: "after",
+        },
+      )
+      .select(
+        "-password -passwordResetToken -passwordResetExpire -refreshToken -__v -createdAt -updatedAt -emailVerifiedAt -emailVerifiedOtp -verificationOtp -isDeleted",
+      );
     if (!user) throw new CustomError(400, "User not found");
     return user;
   },
 
   // approve partner
   async approvePartner(partnerId: string) {
-    const partner = await userModel.findOne({ _id: partnerId, role: role.PARTNERS });
-    
+    const partner = await userModel.findOne({
+      _id: partnerId,
+      role: role.PARTNERS,
+    });
+
     if (!partner) {
       throw new CustomError(404, "Partner account not found.");
     }
@@ -221,58 +271,80 @@ export const userService = {
       throw new CustomError(400, "Partner is already approved.");
     }
 
-    const user = await userModel.findOneAndUpdate(
-      { _id: partnerId, role: role.PARTNERS, status: { $in: [status.PENDING, status.REJECT] } },
-      { status: status.ACTIVE },
-      { returnDocument: "after" }
-    ).select("-password -passwordResetToken -passwordResetExpire -refreshToken -__v -createdAt -updatedAt -emailVerifiedAt -emailVerifiedOtp -verificationOtp -isDeleted");
+    const user = await userModel
+      .findOneAndUpdate(
+        {
+          _id: partnerId,
+          role: role.PARTNERS,
+          status: { $in: [status.PENDING, status.REJECT] },
+        },
+        { status: status.ACTIVE },
+        { returnDocument: "after" },
+      )
+      .select(
+        "-password -passwordResetToken -passwordResetExpire -refreshToken -__v -createdAt -updatedAt -emailVerifiedAt -emailVerifiedOtp -verificationOtp -isDeleted",
+      );
 
     if (!user) {
-      throw new CustomError(400, "Failed to approve partner. They may have been processed by another admin.");
+      throw new CustomError(
+        400,
+        "Failed to approve partner. They may have been processed by another admin.",
+      );
     }
 
-    // Send Approval Email
     mailer({
       email: user.email,
       subject: "Partner Account Approved - HESTEKA",
       template: partnerApprovalEmailTemplate(user.firstName),
-    }).catch(err => console.error("Email Error:", err));
+    }).catch((err) => console.error("Email Error:", err));
 
     return user;
   },
 
   // reject partner
   async rejectPartner(partnerId: string) {
-    const partner = await userModel.findOne({ _id: partnerId, role: role.PARTNERS });
+    const partner = await userModel.findOne({
+      _id: partnerId,
+      role: role.PARTNERS,
+    });
 
     if (!partner) {
       throw new CustomError(404, "Partner account not found.");
     }
 
     if (partner.status === status.ACTIVE) {
-      throw new CustomError(400, "Partner is already approved. Cannot reject an approved partner.");
+      throw new CustomError(
+        400,
+        "Partner is already approved. Cannot reject an approved partner.",
+      );
     }
 
     if (partner.status === status.REJECT) {
       throw new CustomError(400, "Partner is already rejected.");
     }
 
-    const user = await userModel.findOneAndUpdate(
-      { _id: partnerId, role: role.PARTNERS, status: status.PENDING },
-      { status: status.REJECT },
-      { returnDocument: "after" }
-    ).select("-password -passwordResetToken -passwordResetExpire -refreshToken -__v -createdAt -updatedAt -emailVerifiedAt -emailVerifiedOtp -verificationOtp -isDeleted");
+    const user = await userModel
+      .findOneAndUpdate(
+        { _id: partnerId, role: role.PARTNERS, status: status.PENDING },
+        { status: status.REJECT },
+        { returnDocument: "after" },
+      )
+      .select(
+        "-password -passwordResetToken -passwordResetExpire -refreshToken -__v -createdAt -updatedAt -emailVerifiedAt -emailVerifiedOtp -verificationOtp -isDeleted",
+      );
 
     if (!user) {
-      throw new CustomError(400, "Failed to reject partner. They may have been processed by another admin.");
+      throw new CustomError(
+        400,
+        "Failed to reject partner. They may have been processed by another admin.",
+      );
     }
 
-    // Send Rejection Email
     mailer({
       email: user.email,
       subject: "Partner Account Rejected - HESTEKA",
       template: partnerRejectionEmailTemplate(user.firstName),
-    }).catch(err => console.error("Email Error:", err));
+    }).catch((err) => console.error("Email Error:", err));
 
     return user;
   },
@@ -280,7 +352,10 @@ export const userService = {
   //update password
   async updatePassword(req: any) {
     const { email } = req?.user as { email: string };
-    const { currentPassword, newPassword } = req.body as { currentPassword: string; newPassword: string };
+    const { currentPassword, newPassword } = req.body as {
+      currentPassword: string;
+      newPassword: string;
+    };
 
     const user = await userModel.findOne({ email: email }).select("+password");
     if (!user) {
@@ -303,12 +378,85 @@ export const userService = {
       throw new CustomError(404, "User not found");
     }
 
-    // Add exactly once to the array
     if (!user.fcmTokens.includes(fcmToken)) {
       user.fcmTokens.push(fcmToken);
       await user.save();
     }
 
     return true;
+  },
+
+  // ─── Block System ──────────────────────────────────────────────────────────
+
+  // Block a user
+  async blockUser(blockerId: Types.ObjectId, targetId: string) {
+    if (!Types.ObjectId.isValid(targetId)) {
+      throw new CustomError(400, "Invalid user ID");
+    }
+
+    if (blockerId.toString() === targetId) {
+      throw new CustomError(400, "You cannot block yourself");
+    }
+
+    const targetUser = await userModel.findById(targetId).select("_id");
+    if (!targetUser) {
+      throw new CustomError(404, "User not found");
+    }
+
+    const blocker = await userModel.findById(blockerId).select("blockedUsers");
+    if (!blocker) {
+      throw new CustomError(404, "User not found");
+    }
+
+    const targetObjectId = new Types.ObjectId(targetId);
+    const alreadyBlocked = blocker.blockedUsers
+      .map((id) => id.toString())
+      .includes(targetId);
+
+    if (alreadyBlocked) {
+      throw new CustomError(400, "User is already blocked");
+    }
+
+    await userModel.findByIdAndUpdate(blockerId, {
+      $addToSet: { blockedUsers: targetObjectId },
+    });
+  },
+
+  // Unblock a user
+  async unblockUser(blockerId: Types.ObjectId, targetId: string) {
+    if (!Types.ObjectId.isValid(targetId)) {
+      throw new CustomError(400, "Invalid user ID");
+    }
+
+    const blocker = await userModel.findById(blockerId).select("blockedUsers");
+    if (!blocker) {
+      throw new CustomError(404, "User not found");
+    }
+
+    const isBlocked = blocker.blockedUsers
+      .map((id) => id.toString())
+      .includes(targetId);
+
+    if (!isBlocked) {
+      throw new CustomError(400, "User is not in your blocked list");
+    }
+
+    await userModel.findByIdAndUpdate(blockerId, {
+      $pull: { blockedUsers: new Types.ObjectId(targetId) },
+    });
+  },
+
+  // Get blocked users list
+  async getBlockedUsers(userId: Types.ObjectId) {
+    const user = await userModel
+      .findById(userId)
+      .select("blockedUsers")
+      .populate("blockedUsers", "firstName lastName profileImage");
+
+    if (!user) {
+      throw new CustomError(404, "User not found");
+    }
+
+    return user.blockedUsers;
   },
 };

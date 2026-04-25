@@ -49,6 +49,10 @@ const paymentSchema = new Schema<IPayment>(
       ref: "User",
       required: false,
     },
+    captureId: {
+      type: String,
+      required: false,
+    },
   },
   {
     timestamps: true,

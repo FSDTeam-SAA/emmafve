@@ -3,6 +3,8 @@ import { Request, Response } from "express";
 import { asyncHandler } from "../../utils/asyncHandler";
 import ApiResponse from "../../utils/apiResponse";
 import { userService } from "./user.service";
+import CustomError from "../../helpers/CustomError";
+import { Types } from "mongoose";
 
 //: get all users
 export const getalluser = asyncHandler(async (req, res) => {
@@ -39,37 +41,95 @@ export const updateUser = asyncHandler(async (req: Request, res: Response) => {
 });
 
 //: update user status by id
-export const updateStatus = asyncHandler(async (req: Request, res: Response) => {
-  const result = await userService.updateStatus(req);
-  ApiResponse.sendSuccess(res, 200, "User status updated successfully", result);
-});
+export const updateStatus = asyncHandler(
+  async (req: Request, res: Response) => {
+    const result = await userService.updateStatus(req);
+    ApiResponse.sendSuccess(
+      res,
+      200,
+      "User status updated successfully",
+      result,
+    );
+  },
+);
 
 //: approve partner
-export const approvePartner = asyncHandler(async (req: Request, res: Response) => {
-  const { partnerId } = req?.params as { partnerId: string };
-  const result = await userService.approvePartner(partnerId);
-  ApiResponse.sendSuccess(res, 200, "Partner approved successfully", result);
-});
+export const approvePartner = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { partnerId } = req?.params as { partnerId: string };
+    const result = await userService.approvePartner(partnerId);
+    ApiResponse.sendSuccess(res, 200, "Partner approved successfully", result);
+  },
+);
 
 //: reject partner
-export const rejectPartner = asyncHandler(async (req: Request, res: Response) => {
-  const { partnerId } = req?.params as { partnerId: string };
-  const result = await userService.rejectPartner(partnerId);
-  ApiResponse.sendSuccess(res, 200, "Partner rejected successfully", result);
-});
+export const rejectPartner = asyncHandler(
+  async (req: Request, res: Response) => {
+    const { partnerId } = req?.params as { partnerId: string };
+    const result = await userService.rejectPartner(partnerId);
+    ApiResponse.sendSuccess(res, 200, "Partner rejected successfully", result);
+  },
+);
 
 //: update password
-export const updatePassword = asyncHandler(async (req: Request, res: Response) => {
-  await userService.updatePassword(req);
-  ApiResponse.sendSuccess(
-    res,
-    200,
-    "Password changed successfully. Please login again."
-  );
-});
+export const updatePassword = asyncHandler(
+  async (req: Request, res: Response) => {
+    await userService.updatePassword(req);
+    ApiResponse.sendSuccess(
+      res,
+      200,
+      "Password changed successfully. Please login again.",
+    );
+  },
+);
 
 //: update fcm token
-export const updateFcmToken = asyncHandler(async (req: Request, res: Response) => {
-  await userService.updateFcmToken(req);
-  ApiResponse.sendSuccess(res, 200, "FCM Token registered successfully");
+export const updateFcmToken = asyncHandler(
+  async (req: Request, res: Response) => {
+    await userService.updateFcmToken(req);
+    ApiResponse.sendSuccess(res, 200, "FCM Token registered successfully");
+  },
+);
+
+// ─── Block System ─────────────────────────────────────────────────────────────
+
+//: block a user
+export const blockUser = asyncHandler(async (req: Request, res: Response) => {
+  const blockerId = req.user?._id;
+  if (!blockerId) throw new CustomError(401, "Unauthorized");
+
+  const { userId } = req.params as { userId: string };
+  await userService.blockUser(blockerId as Types.ObjectId, userId);
+
+  ApiResponse.sendSuccess(res, 200, "User blocked successfully");
 });
+
+//: unblock a user
+export const unblockUser = asyncHandler(async (req: Request, res: Response) => {
+  const blockerId = req.user?._id;
+  if (!blockerId) throw new CustomError(401, "Unauthorized");
+
+  const { userId } = req.params as { userId: string };
+  await userService.unblockUser(blockerId as Types.ObjectId, userId);
+
+  ApiResponse.sendSuccess(res, 200, "User unblocked successfully");
+});
+
+//: get blocked users list
+export const getBlockedUsers = asyncHandler(
+  async (req: Request, res: Response) => {
+    const userId = req.user?._id;
+    if (!userId) throw new CustomError(401, "Unauthorized");
+
+    const blockedUsers = await userService.getBlockedUsers(
+      userId as Types.ObjectId,
+    );
+
+    ApiResponse.sendSuccess(
+      res,
+      200,
+      "Blocked users fetched successfully",
+      blockedUsers,
+    );
+  },
+);
