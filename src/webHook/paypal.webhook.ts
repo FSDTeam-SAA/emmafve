@@ -76,7 +76,9 @@ export const paypalWebhookHandler = async (
     return;
   }
 
-  const event = req.body;
+  const event = req.body instanceof Buffer ? JSON.parse(rawBody) : req.body;
+
+  console.log(`PayPal Webhook Received: ${event.event_type}`);
 
   try {
     switch (event.event_type) {
@@ -91,17 +93,34 @@ export const paypalWebhookHandler = async (
           // ✅ captureId দিয়ে payment খোঁজো
           // PayPal আগে orderId দিয়ে payment বানিয়েছিলাম,
           // capture এর পর captureId set করা হয়েছে
-          const payment = await paymentModel.findOneAndUpdate(
+          let payment = await paymentModel.findOneAndUpdate(
             {
               provider: PaymentProvider.PAYPAL,
-              captureId, // payment.service এ set করা হয়েছে
+              captureId,
             },
             { $set: { status: PaymentStatus.COMPLETED } },
             { new: true, session },
           );
 
+          // fallback — যদি captureId দিয়ে না পাওয়া যায় (Race condition), তবে orderId দিয়ে খুঁজি
           if (!payment) {
-            // fallback — পুরনো data বা direct webhook
+            const orderId = capture.supplementary_data?.related_ids?.order_id;
+            console.log(`Payment not found by captureId ${captureId}, trying orderId: ${orderId}`);
+            
+            if (orderId) {
+              payment = await paymentModel.findOneAndUpdate(
+                {
+                  provider: PaymentProvider.PAYPAL,
+                  providerTransactionId: orderId,
+                },
+                { $set: { status: PaymentStatus.COMPLETED, captureId: captureId } },
+                { new: true, session },
+              );
+            }
+          }
+
+          if (!payment) {
+            console.error(`PayPal Payment not found for Capture: ${captureId}`);
             await session.abortTransaction();
             session.endSession();
             break;

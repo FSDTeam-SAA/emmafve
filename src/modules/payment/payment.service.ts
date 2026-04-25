@@ -220,7 +220,8 @@ const capturePayPalOrder = async (
     },
     {
       $set: {
-        captureId, // নতুন field — webhook এ এটা দিয়ে match করবো
+        captureId,
+        status: PaymentStatus.COMPLETED, // API capture সাকসেস হলে সাথে সাথেই স্ট্যাটাস আপডেট করে দিচ্ছি
       },
     },
   );
