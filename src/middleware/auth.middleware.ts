@@ -89,3 +89,44 @@ export const allowRole = (...roles: string[]) => {
     }
   };
 };
+
+export const authGuardOptional = async (
+  req: Request,
+  _res: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const accessToken = req.headers?.authorization?.split("Bearer ")[1];
+
+    if (!accessToken) {
+      return next();
+    }
+
+    const decoded = jwt.verify(
+      accessToken,
+      config.jwt.accessTokenSecret,
+    ) as TokenPayload;
+
+    if (!decoded || !decoded.userId) {
+      return next();
+    }
+
+    const user = await userModel
+      .findById(decoded.userId)
+      .select("_id email role status")
+      .lean();
+
+    if (user && user.status === status.ACTIVE) {
+      req.user = {
+        _id: user._id,
+        email: user.email,
+        role: user.role,
+        status: user.status,
+      };
+    }
+
+    next();
+  } catch (error) {
+    next();
+  }
+};

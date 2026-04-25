@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { authGuard, allowRole } from "../../middleware/auth.middleware";
+import { authGuard, allowRole, authGuardOptional } from "../../middleware/auth.middleware";
 import { upload } from "../../middleware/multer.midleware";
 import { validateRequest } from "../../middleware/validateRequest.middleware";
 import {
@@ -7,14 +7,18 @@ import {
   deleteContact,
   getAllContacts,
   getContactById,
+  getByContactType,
   updateContact,
+  getContactStats,
 } from "./contact.controller";
 import { contactValidation } from "./contact.validation";
 
 const router = Router();
 
-router.get("/get-all-contacts", getAllContacts);
+router.get("/get-all-contacts", authGuardOptional, getAllContacts);
+router.get("/get-by-type/:contactType", authGuardOptional, getByContactType);
 router.get("/get-single-contact/:contactId", getContactById);
+router.get("/stats", authGuardOptional, getContactStats);
 
 router.use(authGuard, allowRole("admin"));
 

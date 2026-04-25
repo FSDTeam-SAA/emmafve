@@ -26,6 +26,10 @@ export interface IContact extends Document {
     public_id: string;
     secure_url: string;
   };
+  location?: {
+    type: string;
+    coordinates: number[];
+  };
   status: ContactStatus;
 }
 
@@ -39,7 +43,9 @@ export interface CreateContactPayload {
   website?: string;
   city?: string;
   country?: string;
+  latitude?: number;
+  longitude?: number;
   status?: ContactStatus;
 }
 
-export interface UpdateContactPayload extends Partial<CreateContactPayload> {}
+export interface UpdateContactPayload extends Partial<CreateContactPayload> { }
