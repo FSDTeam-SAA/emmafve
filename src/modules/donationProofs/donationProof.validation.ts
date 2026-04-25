@@ -7,6 +7,8 @@ export const submitDonationProofSchema = z.object({
   category: z.nativeEnum(DonationCategory, {
     error: `Category must be one of: ${Object.values(DonationCategory).join(", ")}`,
   }),
+  donorName: z.string().optional(),
+  donorEmail: z.string().email("Invalid email").optional(),
 });
 
 export const validateDonationProofSchema = z.object({

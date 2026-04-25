@@ -4,6 +4,7 @@ import { uploadCloudinary } from "../../helpers/cloudinary";
 import { paginationHelper } from "../../utils/pagination";
 import { userModel } from "../usersAuth/user.models";
 import { pointTransactionModel } from "../points/point.models";
+import { pointConfigModel } from "../points/pointConfig.models";
 import { PointTransactionSource, PointTransactionType } from "../points/point.interface";
 import { donationProofModel } from "./donationProof.models";
 import {
@@ -22,11 +23,14 @@ import { getIo } from "../../socket/server";
 export const donationProofService = {
   async submitProof(req: Request) {
     const userId = req.user?._id;
-    if (!userId) throw new CustomError(401, "Unauthorized access");
+    const data = req.body;
+    
+    // Admin or authenticated user check
+    if (!userId && !data.donorEmail) {
+      throw new CustomError(401, "User ID or Donor Email is required");
+    }
 
-    const data: SubmitDonationProofPayload = req.body;
     const file = req.file;
-
     if (!file) {
       throw new CustomError(400, "Donation slip photo is required");
     }
@@ -34,7 +38,9 @@ export const donationProofService = {
     const photoResult = await uploadCloudinary(file.path);
 
     const donationProof = await donationProofModel.create({
-      user: userId,
+      ...(userId && { user: userId }),
+      ...(data.donorName && { donorName: data.donorName }),
+      ...(data.donorEmail && { donorEmail: data.donorEmail }),
       collectionPoint: data.collectionPointId,
       amount: data.amount,
       category: data.category,
@@ -46,11 +52,19 @@ export const donationProofService = {
     });
 
     // Sync with global Donation collection
-    const user = await userModel.findById(userId);
+    let finalDonorEmail = data.donorEmail;
+    let finalDonorName = data.donorName;
+
+    if (userId && (!finalDonorEmail || !finalDonorName)) {
+      const user = await userModel.findById(userId);
+      if (!finalDonorEmail) finalDonorEmail = user?.email;
+      if (!finalDonorName) finalDonorName = `${user?.firstName} ${user?.lastName}`;
+    }
+
     await donationService.syncPhysicalDonation({
       amount: data.amount,
-      donorEmail: user?.email || "unknown",
-      donorName: `${user?.firstName} ${user?.lastName}`,
+      donorEmail: finalDonorEmail || "unknown",
+      donorName: finalDonorName || "Manual Donor",
       status: "pending",
       referenceId: donationProof._id.toString(),
     });
@@ -100,37 +114,44 @@ export const donationProofService = {
     if (adminNote) proof.adminNote = adminNote;
     await proof.save();
 
-    // 2. Award points to user
-    await userModel.findByIdAndUpdate(proof.user, {
-      $inc: { pointsBalance: pointsAwarded },
-    });
+    // 2. Award points to user (if registered user)
+    if (proof.user) {
+      await userModel.findByIdAndUpdate(proof.user, {
+        $inc: { pointsBalance: pointsAwarded },
+      });
 
-    // 3. Create point transaction
-    await pointTransactionModel.create({
-      user: proof.user,
-      type: PointTransactionType.EARN,
-      source: PointTransactionSource.PHYSICAL_DONATION,
-      points: pointsAwarded,
-      note: `Points earned from physical donation of ${proof.amount}. ${adminNote || ""}`,
-    });
+      // 3. Create point transaction
+      await pointTransactionModel.create({
+        user: proof.user,
+        type: PointTransactionType.EARN,
+        source: PointTransactionSource.PHYSICAL_DONATION,
+        points: pointsAwarded,
+        note: `Points earned from physical donation of ${proof.amount}. ${adminNote || ""}`,
+      });
+    }
 
     // 4. Update status in global Donation collection
-    const user: any = proof.user;
+    const donorEmail = proof.donorEmail || (proof.user as any)?.email || "unknown";
+    const donorName = proof.donorName || 
+      (proof.user ? `${(proof.user as any).firstName} ${(proof.user as any).lastName}` : "Manual Donor");
+
     await donationService.syncPhysicalDonation({
       amount: proof.amount,
-      donorEmail: user?.email || "unknown",
-      donorName: `${user?.firstName} ${user?.lastName}`,
+      donorEmail,
+      donorName,
       status: "completed",
       referenceId: proof._id.toString(),
     });
 
-    // 5. Notify user
-    await notificationService.notifySingleUser(
-      user._id.toString(),
-      "Donation Approved!",
-      `Your physical donation of ${proof.amount} has been approved. You've earned ${pointsAwarded} points.`,
-      NotificationType.SYSTEM // Or appropriate type
-    );
+    // 5. Notify user (if registered user)
+    if (proof.user) {
+      await notificationService.notifySingleUser(
+        (proof.user as any)._id.toString(),
+        "Donation Approved!",
+        `Your physical donation of ${proof.amount} has been approved. You've earned ${pointsAwarded} points.`,
+        NotificationType.SYSTEM // Or appropriate type
+      );
+    }
 
     // 6. Real-time update for admins
     try {
@@ -155,22 +176,27 @@ export const donationProofService = {
     await proof.save();
 
     // Update status in global Donation collection
-    const user: any = proof.user;
+    const donorEmail = proof.donorEmail || (proof.user as any)?.email || "unknown";
+    const donorName = proof.donorName || 
+      (proof.user ? `${(proof.user as any).firstName} ${(proof.user as any).lastName}` : "Manual Donor");
+
     await donationService.syncPhysicalDonation({
       amount: proof.amount,
-      donorEmail: user?.email || "unknown",
-      donorName: `${user?.firstName} ${user?.lastName}`,
+      donorEmail,
+      donorName,
       status: "cancelled",
       referenceId: proof._id.toString(),
     });
 
-    // Notify user
-    await notificationService.notifySingleUser(
-      user._id.toString(),
-      "Donation Proof Rejected",
-      `Your physical donation proof has been rejected. Reason: ${adminNote}`,
-      NotificationType.SYSTEM
-    );
+    // Notify user (if registered user)
+    if (proof.user) {
+      await notificationService.notifySingleUser(
+        (proof.user as any)._id.toString(),
+        "Donation Proof Rejected",
+        `Your physical donation proof has been rejected. Reason: ${adminNote}`,
+        NotificationType.SYSTEM
+      );
+    }
 
     // Real-time update for admins
     try {
@@ -189,7 +215,8 @@ export const donationProofService = {
       return { message: "No pending proofs to validate", count: 0 };
     }
 
-    const pointsPerDonation = 15; // Default points
+    const config = await pointConfigModel.findOne();
+    const pointsPerDonation = config ? (config.isDoublePointsActive ? config.pointsPerDonation * 2 : config.pointsPerDonation) : 15;
     const adminNote = "Bulk validate by admin";
 
     const validationPromises = pendingProofs.map(async (proof) => {
@@ -199,37 +226,44 @@ export const donationProofService = {
       proof.adminNote = adminNote;
       await proof.save();
 
-      // 2. Award points to user
-      await userModel.findByIdAndUpdate(proof.user, {
-        $inc: { pointsBalance: pointsPerDonation },
-      });
+      // 2. Award points to user (if registered user)
+      if (proof.user) {
+        await userModel.findByIdAndUpdate(proof.user, {
+          $inc: { pointsBalance: pointsPerDonation },
+        });
 
-      // 3. Create point transaction
-      await pointTransactionModel.create({
-        user: proof.user,
-        type: PointTransactionType.EARN,
-        source: PointTransactionSource.PHYSICAL_DONATION,
-        points: pointsPerDonation,
-        note: `Points earned from physical donation of ${proof.amount}. ${adminNote}`,
-      });
+        // 3. Create point transaction
+        await pointTransactionModel.create({
+          user: proof.user,
+          type: PointTransactionType.EARN,
+          source: PointTransactionSource.PHYSICAL_DONATION,
+          points: pointsPerDonation,
+          note: `Points earned from physical donation of ${proof.amount}. ${adminNote}`,
+        });
+      }
 
       // 4. Update status in global Donation collection
-      const user: any = proof.user;
+      const donorEmail = proof.donorEmail || (proof.user as any)?.email || "unknown";
+      const donorName = proof.donorName || 
+        (proof.user ? `${(proof.user as any).firstName} ${(proof.user as any).lastName}` : "Manual Donor");
+
       await donationService.syncPhysicalDonation({
         amount: proof.amount,
-        donorEmail: user?.email || "unknown",
-        donorName: `${user?.firstName} ${user?.lastName}`,
+        donorEmail,
+        donorName,
         status: "completed",
         referenceId: proof._id.toString(),
       });
 
-      // 5. Notify user
-      await notificationService.notifySingleUser(
-        user._id.toString(),
-        "Donation Approved!",
-        `Your physical donation of ${proof.amount} has been approved via bulk validation. You've earned ${pointsPerDonation} points.`,
-        NotificationType.SYSTEM
-      );
+      // 5. Notify user (if registered user)
+      if (proof.user) {
+        await notificationService.notifySingleUser(
+          (proof.user as any)._id.toString(),
+          "Donation Approved!",
+          `Your physical donation of ${proof.amount} has been approved via bulk validation. You've earned ${pointsPerDonation} points.`,
+          NotificationType.SYSTEM
+        );
+      }
 
       return proof._id;
     });
