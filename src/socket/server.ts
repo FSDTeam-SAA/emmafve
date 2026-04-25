@@ -58,12 +58,16 @@ export const initSocket = (httpServer: http.Server): Server => {
         socket.userEmail = decoded.email;
         return next();
       }
-
+      
       // Fallback — legacy userId in query (for notification client)
       const queryUserId = socket.handshake.query?.userId as string | undefined;
+      const queryEmail = socket.handshake.query?.email as string | undefined;
 
       if (queryUserId) {
         socket.userId = queryUserId;
+        if (queryEmail) {
+          socket.userEmail = queryEmail;
+        }
         return next();
       }
 
@@ -75,11 +79,17 @@ export const initSocket = (httpServer: http.Server): Server => {
   });
 
   io.on("connection", (socket: AuthenticatedSocket) => {
-    console.log(`🔌 Socket connected: ${socket.id} (user: ${socket.userId})`);
+    console.log(`🔌 Socket connected: ${socket.id} (user: ${socket.userId}, email: ${socket.userEmail})`);
 
     // Personal room for direct user notifications
     if (socket.userId) {
       socket.join(socket.userId);
+    }
+
+    // Email-based room for payment notifications
+    if (socket.userEmail) {
+      socket.join(socket.userEmail);
+      console.log(`📧 Joined email room: ${socket.userEmail}`);
     }
 
     // Legacy chat room support (for 1-on-1 chats if needed later)

@@ -54,7 +54,7 @@ const donationSchema = new Schema<IDonation>(
     receiptId: {
       type: String,
       unique: true,
-      required: true,
+      // required: true,
     },
   },
   {

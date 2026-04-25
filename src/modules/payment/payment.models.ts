@@ -44,6 +44,11 @@ const paymentSchema = new Schema<IPayment>(
     metadata: {
       type: Schema.Types.Mixed,
     },
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: false,
+    },
   },
   {
     timestamps: true,

@@ -18,8 +18,8 @@ export interface IDonation extends Document {
   type: DonationType;
   donorEmail: string;
   donorName: string;
-  isCompanyDonation: boolean;
-  companyInfo?: IDonationCompanyInfo;
+  isCompanyDonation: boolean | null;
+  companyInfo?: IDonationCompanyInfo | null;
   referenceId?: string;
   status: "pending" | "completed" | "cancelled";
   receiptId: string;
@@ -32,10 +32,11 @@ export interface CreateDonationPayload {
   type: DonationType;
   donorEmail: string;
   donorName: string;
-  isCompanyDonation?: boolean;
-  companyInfo?: IDonationCompanyInfo;
+  isCompanyDonation?: boolean | null;
+  companyInfo?: IDonationCompanyInfo | null;
   payerEmail: string;
   payerName: string;
+  userId?: string | null;
 }
 
 export interface CreateDonationFromPaymentPayload {
