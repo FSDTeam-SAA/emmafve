@@ -1,0 +1,164 @@
+{
+  "info": {
+    "name": "Emmafve FINAL DEFINITIVE Collection - v2",
+    "description": "100% complete collection of all Emmafve project routes with full query and path parameters.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "01_Auth",
+      "item": [
+        { "name": "register-user(Public)", "request": { "method": "POST", "body": { "mode": "raw", "raw": "{\n  \"firstName\": \"John\",\n  \"lastName\": \"Doe\",\n  \"email\": \"john@example.com\",\n  \"phone\": \"+123456789\",\n  \"address\": \"123 Street\",\n  \"company\": \"Company Co\",\n  \"password\": \"Password@123\",\n  \"role\": \"user\"\n}" }, "url": { "raw": "{{domain}}{{baseapi}}/auth/register-user", "host": ["{{domain}}"], "path": ["{{baseapi}}", "auth", "register-user"] } } },
+        { "name": "register-partner(Public)", "request": { "method": "POST", "body": { "mode": "raw", "raw": "{\n  \"firstName\": \"Jane\",\n  \"lastName\": \"Partner\",\n  \"email\": \"partner@example.com\",\n  \"phone\": \"+123456780\",\n  \"address\": \"12 Partner Street\",\n  \"company\": \"Kokoon\",\n  \"password\": \"Password@123\"\n}" }, "url": { "raw": "{{domain}}{{baseapi}}/auth/register-partner", "host": ["{{domain}}"], "path": ["{{baseapi}}", "auth", "register-partner"] } } },
+        { "name": "login(Public)", "request": { "method": "POST", "body": { "mode": "raw", "raw": "{\n  \"email\": \"john@example.com\",\n  \"password\": \"Password@123\"\n}" }, "url": { "raw": "{{domain}}{{baseapi}}/auth/login", "host": ["{{domain}}"], "path": ["{{baseapi}}", "auth", "login"] } } },
+        { "name": "verify-account(Public)", "request": { "method": "POST", "body": { "mode": "raw", "raw": "{\"email\":\"john@example.com\",\"otp\":\"123456\"}" }, "url": { "raw": "{{domain}}{{baseapi}}/auth/verify-account", "host": ["{{domain}}"], "path": ["{{baseapi}}", "auth", "verify-account"] } } },
+        { "name": "forget-password(Public)", "request": { "method": "POST", "body": { "mode": "raw", "raw": "{\"email\":\"john@example.com\"}" }, "url": { "raw": "{{domain}}{{baseapi}}/auth/forget-password", "host": ["{{domain}}"], "path": ["{{baseapi}}", "auth", "forget-password"] } } },
+        { "name": "verify-otp(Public)", "request": { "method": "POST", "body": { "mode": "raw", "raw": "{\"email\":\"john@example.com\",\"otp\":\"123456\"}" }, "url": { "raw": "{{domain}}{{baseapi}}/auth/verify-otp", "host": ["{{domain}}"], "path": ["{{baseapi}}", "auth", "verify-otp"] } } },
+        { "name": "reset-password(Public)", "request": { "method": "POST", "body": { "mode": "raw", "raw": "{\"password\":\"NewPass@123\",\"confirmPassword\":\"NewPass@123\"}" }, "url": { "raw": "{{domain}}{{baseapi}}/auth/reset-password/:token", "host": ["{{domain}}"], "path": ["{{baseapi}}", "auth", "reset-password", ":token"], "variable": [{"key":"token","value":""}] } } },
+        { "name": "logout(User/Admin/Partner)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/auth/logout", "host": ["{{domain}}"], "path": ["{{baseapi}}", "auth", "logout"] } } },
+        { "name": "generate-access-token(Public)", "request": { "method": "POST", "url": { "raw": "{{domain}}{{baseapi}}/auth/generate-access-token", "host": ["{{domain}}"], "path": ["{{baseapi}}", "auth", "generate-access-token"] } } }
+      ]
+    },
+    {
+      "name": "02_Users",
+      "item": [
+        { "name": "get-all-user(Admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/user/get-all-user?page=1&limit=10&search=&status=active&sortBy=createdAt&sort=desc", "host": ["{{domain}}"], "path": ["{{baseapi}}", "user", "get-all-user"], "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"},{"key":"search","value":""},{"key":"status","value":"active"},{"key":"sortBy","value":"createdAt"},{"key":"sort","value":"desc"}] } } },
+        { "name": "get-single-user(User/Admin/Partner)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/user/get-single-user/:userId", "host": ["{{domain}}"], "path": ["{{baseapi}}", "user", "get-single-user", ":userId"], "variable": [{"key":"userId","value":""}] } } },
+        { "name": "get-my-profile(User/Admin/Partner)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/user/get-my-profile", "host": ["{{domain}}"], "path": ["{{baseapi}}", "user", "get-my-profile"] } } },
+        { "name": "update-user(User/Admin/Partner)", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "body": { "mode": "formdata", "formdata": [{ "key": "firstName", "value": "Jane" }, { "key": "image", "type": "file" }] }, "url": { "raw": "{{domain}}{{baseapi}}/user/update-user", "host": ["{{domain}}"], "path": ["{{baseapi}}", "user", "update-user"] } } },
+        { "name": "update-status(Admin)", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "body": { "mode": "raw", "raw": "{\"status\":\"active\"}" }, "url": { "raw": "{{domain}}{{baseapi}}/user/update-status/:userId", "host": ["{{domain}}"], "path": ["{{baseapi}}", "user", "update-status", ":userId"], "variable": [{"key":"userId","value":""}] } } },
+        { "name": "approve-partner(Admin)", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/user/approve-partner/:partnerId", "host": ["{{domain}}"], "path": ["{{baseapi}}", "user", "approve-partner", ":partnerId"], "variable": [{"key":"partnerId","value":""}] } } },
+        { "name": "reject-partner(Admin)", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/user/reject-partner/:partnerId", "host": ["{{domain}}"], "path": ["{{baseapi}}", "user", "reject-partner", ":partnerId"], "variable": [{"key":"partnerId","value":""}] } } },
+        { "name": "update-password(User/Admin/Partner)", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "body": { "mode": "raw", "raw": "{\"currentPassword\":\"Password@123\",\"newPassword\":\"NewPass@123\",\"confirmPassword\":\"NewPass@123\"}" }, "url": { "raw": "{{domain}}{{baseapi}}/user/update-password", "host": ["{{domain}}"], "path": ["{{baseapi}}", "user", "update-password"] } } }
+      ]
+    },
+    {
+      "name": "03_Reports",
+      "item": [
+        { "name": "create-report(User/Admin/Partner)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "body": { "mode": "formdata", "formdata": [{ "key": "animalName", "value": "Buddy" }, { "key": "species", "value": "Dog" }, { "key": "images", "type": "file" }] }, "url": { "raw": "{{domain}}{{baseapi}}/reports/create-report", "host": ["{{domain}}"], "path": ["{{baseapi}}", "reports", "create-report"] } } },
+        { "name": "get-all-reports(Public)", "request": { "method": "GET", "url": { "raw": "{{domain}}{{baseapi}}/reports/get-all-reports?page=1&limit=10&search=&status=all&sortBy=date&sort=desc", "host": ["{{domain}}"], "path": ["{{baseapi}}", "reports", "get-all-reports"], "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"},{"key":"search","value":""},{"key":"status","value":"all"},{"key":"sortBy","value":"date"},{"key":"sort","value":"desc"}] } } },
+        { "name": "get-single-report(Public)", "request": { "method": "GET", "url": { "raw": "{{domain}}{{baseapi}}/reports/get-single-report/:reportId", "host": ["{{domain}}"], "path": ["{{baseapi}}", "reports", "get-single-report", ":reportId"], "variable": [{"key":"reportId","value":""}] } } },
+        { "name": "update-report(User/Admin/Partner)", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "body": { "mode": "formdata", "formdata": [{ "key": "status", "value": "found" }] }, "url": { "raw": "{{domain}}{{baseapi}}/reports/update-report/:reportId", "host": ["{{domain}}"], "path": ["{{baseapi}}", "reports", "update-report", ":reportId"], "variable": [{"key":"reportId","value":""}] } } },
+        { "name": "delete-report(User/Admin/Partner)", "request": { "method": "DELETE", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/reports/delete-report/:reportId", "host": ["{{domain}}"], "path": ["{{baseapi}}", "reports", "delete-report", ":reportId"], "variable": [{"key":"reportId","value":""}] } } }
+      ]
+    },
+    {
+      "name": "04_Comments",
+      "item": [
+        { "name": "create-comment(User/Admin/Partner)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "body": { "mode": "formdata", "formdata": [{ "key": "content", "value": "I saw him!" }, { "key": "reportId", "value": "id" }, { "key": "image", "type": "file" }] }, "url": { "raw": "{{domain}}{{baseapi}}/comments/create-comment", "host": ["{{domain}}"], "path": ["{{baseapi}}", "comments", "create-comment"] } } },
+        { "name": "get-comments-by-report(Public)", "request": { "method": "GET", "url": { "raw": "{{domain}}{{baseapi}}/comments/get-comments-by-report/:reportId?page=1&limit=10", "host": ["{{domain}}"], "path": ["{{baseapi}}", "comments", "get-comments-by-report", ":reportId"], "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"}], "variable": [{"key":"reportId","value":""}] } } },
+        { "name": "create-reply(User/Admin/Partner)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "body": { "mode": "formdata", "formdata": [{ "key": "content", "value": "Agree!" }] }, "url": { "raw": "{{domain}}{{baseapi}}/comments/create-reply/:commentId", "host": ["{{domain}}"], "path": ["{{baseapi}}", "comments", "create-reply", ":commentId"], "variable": [{"key":"commentId","value":""}] } } },
+        { "name": "toggle-like(User/Admin/Partner)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/comments/toggle-like/:commentId", "host": ["{{domain}}"], "path": ["{{baseapi}}", "comments", "toggle-like", ":commentId"], "variable": [{"key":"commentId","value":""}] } } }
+      ]
+    },
+    {
+      "name": "05_Donations",
+      "item": [
+        { "name": "stripe-initiate(Public)", "request": { "method": "POST", "body": { "mode": "raw", "raw": "{\n  \"amount\": 100,\n  \"donorName\": \"Jane Doe\",\n  \"donorEmail\": \"donor@example.com\"\n}" }, "url": { "raw": "{{domain}}{{baseapi}}/donations/stripe/initiate", "host": ["{{domain}}"], "path": ["{{baseapi}}", "donations", "stripe", "initiate"] } } },
+        { "name": "paypal-initiate(Public)", "request": { "method": "POST", "body": { "mode": "raw", "raw": "{\"amount\":100}" }, "url": { "raw": "{{domain}}{{baseapi}}/donations/paypal/initiate", "host": ["{{domain}}"], "path": ["{{baseapi}}", "donations", "paypal", "initiate"] } } },
+        { "name": "get-all-donation(Admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/donations/get-all-donation?page=1&limit=10&status=completed", "host": ["{{domain}}"], "path": ["{{baseapi}}", "donations", "get-all-donation"], "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"},{"key":"status","value":"completed"}] } } },
+        { "name": "get-donation-stats(Admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/donations/stats", "host": ["{{domain}}"], "path": ["{{baseapi}}", "donations", "stats"] } } },
+        { "name": "send-receipt(Admin)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/donations/:donationId/send-receipt", "host": ["{{domain}}"], "path": ["{{baseapi}}", "donations", ":donationId", "send-receipt"], "variable": [{"key":"donationId","value":""}] } } }
+      ]
+    },
+    {
+      "name": "06_Donation-Proofs",
+      "item": [
+        { "name": "submit-proof(User)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "body": { "mode": "formdata", "formdata": [{ "key": "amount", "value": "50" }, { "key": "category", "value": "food" }, { "key": "image", "type": "file" }, { "key": "donorName", "value": "Manual" }] }, "url": { "raw": "{{domain}}{{baseapi}}/donation-proofs/submit", "host": ["{{domain}}"], "path": ["{{baseapi}}", "donation-proofs", "submit"] } } },
+        { "name": "get-pending-proofs(Admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/donation-proofs/pending?page=1&limit=10", "host": ["{{domain}}"], "path": ["{{baseapi}}", "donation-proofs", "pending"], "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"}] } } },
+        { "name": "validate-proof(Admin)", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "body": { "mode": "raw", "raw": "{\"pointsAwarded\":15,\"adminNote\":\"Valid\"}" }, "url": { "raw": "{{domain}}{{baseapi}}/donation-proofs/validate/:donationProofId", "host": ["{{domain}}"], "path": ["{{baseapi}}", "donation-proofs", "validate", ":donationProofId"], "variable": [{"key":"donationProofId","value":""}] } } },
+        { "name": "reject-proof(Admin)", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "body": { "mode": "raw", "raw": "{\"refusalReason\":\"invalid_photo\",\"adminNote\":\"Blurry\"}" }, "url": { "raw": "{{domain}}{{baseapi}}/donation-proofs/reject/:donationProofId", "host": ["{{domain}}"], "path": ["{{baseapi}}", "donation-proofs", "reject", ":donationProofId"], "variable": [{"key":"donationProofId","value":""}] } } },
+        { "name": "get-proof-stats(Admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/donation-proofs/stats", "host": ["{{domain}}"], "path": ["{{baseapi}}", "donation-proofs", "stats"] } } },
+        { "name": "validate-all(Admin)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/donation-proofs/validate-all", "host": ["{{domain}}"], "path": ["{{baseapi}}", "donation-proofs", "validate-all"] } } }
+      ]
+    },
+    {
+      "name": "07_Points",
+      "item": [
+        { "name": "get-my-points(User)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/points/get-my-points?page=1&limit=10", "host": ["{{domain}}"], "path": ["{{baseapi}}", "points", "get-my-points"], "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"}] } } },
+        { "name": "redeem-points(User)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "body": { "mode": "raw", "raw": "{\"points\":100,\"note\":\"Exchange\"}" }, "url": { "raw": "{{domain}}{{baseapi}}/points/redeem-points", "host": ["{{domain}}"], "path": ["{{baseapi}}", "points", "redeem-points"] } } },
+        { "name": "admin-get-config(Admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/points/admin/config", "host": ["{{domain}}"], "path": ["{{baseapi}}", "points", "admin", "config"] } } },
+        { "name": "admin-update-config(Admin)", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "body": { "mode": "raw", "raw": "{\"pointsPerDonation\":20,\"isDoublePointsActive\":true}" }, "url": { "raw": "{{domain}}{{baseapi}}/points/admin/config", "host": ["{{domain}}"], "path": ["{{baseapi}}", "points", "admin", "config"] } } },
+        { "name": "admin-stats(Admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/points/admin/stats", "host": ["{{domain}}"], "path": ["{{baseapi}}", "points", "admin", "stats"] } } }
+      ]
+    },
+    {
+      "name": "08_Community",
+      "item": [
+        { "name": "get-global-chat(User/Admin/Partner)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/community/chat/global?page=1&limit=20", "host": ["{{domain}}"], "path": ["{{baseapi}}", "community", "chat", "global"], "query": [{"key":"page","value":"1"},{"key":"limit","value":"20"}] } } },
+        { "name": "send-chat-message(User/Admin/Partner)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "body": { "mode": "formdata", "formdata": [{ "key": "content", "value": "Hello!" }, { "key": "media", "type": "file" }] }, "url": { "raw": "{{domain}}{{baseapi}}/community/chat", "host": ["{{domain}}"], "path": ["{{baseapi}}", "community", "chat"] } } },
+        { "name": "get-conversations(User/Admin/Partner)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/community/private/conversations?page=1&limit=10", "host": ["{{domain}}"], "path": ["{{baseapi}}", "community", "private", "conversations"], "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"}] } } },
+        { "name": "create-story(User/Admin/Partner)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "body": { "mode": "formdata", "formdata": [{ "key": "media", "type": "file" }] }, "url": { "raw": "{{domain}}{{baseapi}}/community/stories", "host": ["{{domain}}"], "path": ["{{baseapi}}", "community", "stories"] } } },
+        { "name": "get-local-stories(User/Admin/Partner)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/community/stories/local", "host": ["{{domain}}"], "path": ["{{baseapi}}", "community", "stories", "local"] } } }
+      ]
+    },
+    {
+      "name": "09_Admin_Global_Stats",
+      "item": [
+        { "name": "get-overall-stats(Admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/admin/stats", "host": ["{{domain}}"], "path": ["{{baseapi}}", "admin", "stats"] } } },
+        { "name": "get-user-stats(Admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/admin/stats/users?from=2026-04-01&to=2026-04-30", "host": ["{{domain}}"], "path": ["{{baseapi}}", "admin", "stats", "users"], "query": [{"key":"from","value":"2026-04-01"},{"key":"to","value":"2026-04-30"}] } } },
+        { "name": "get-report-stats(Admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/admin/stats/reports", "host": ["{{domain}}"], "path": ["{{baseapi}}", "admin", "stats", "reports"] } } },
+        { "name": "get-partner-stats(Admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/admin/stats/partners", "host": ["{{domain}}"], "path": ["{{baseapi}}", "admin", "stats", "partners"] } } },
+        { "name": "get-mission-stats(Admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/admin/stats/missions", "host": ["{{domain}}"], "path": ["{{baseapi}}", "admin", "stats", "missions"] } } },
+        { "name": "get-donation-stats(Admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/admin/stats/donations", "host": ["{{domain}}"], "path": ["{{baseapi}}", "admin", "stats", "donations"] } } },
+        { "name": "get-items-stats(Admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/admin/stats/items", "host": ["{{domain}}"], "path": ["{{baseapi}}", "admin", "stats", "items"] } } },
+        { "name": "get-collection-point-stats(Admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/admin/stats/collection-points", "host": ["{{domain}}"], "path": ["{{baseapi}}", "admin", "stats", "collection-points"] } } }
+      ]
+    },
+    {
+      "name": "10_Local_Missions",
+      "item": [
+        { "name": "get-all-local-missions(Public)", "request": { "method": "GET", "url": { "raw": "{{domain}}{{baseapi}}/local-missions/get-all-local-missions?page=1&limit=10&search=&status=active&sortBy=points&sort=desc", "host": ["{{domain}}"], "path": ["{{baseapi}}", "local-missions", "get-all-local-missions"], "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"},{"key":"search","value":""},{"key":"status","value":"active"},{"key":"sortBy","value":"points"},{"key":"sort","value":"desc"}] } } },
+        { "name": "get-single-local-mission(Public)", "request": { "method": "GET", "url": { "raw": "{{domain}}{{baseapi}}/local-missions/get-single-local-mission/:missionId", "host": ["{{domain}}"], "path": ["{{baseapi}}", "local-missions", "get-single-local-mission", ":missionId"], "variable": [{"key":"missionId","value":""}] } } },
+        { "name": "join-local-mission(User)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/local-missions/join-local-mission/:missionId", "host": ["{{domain}}"], "path": ["{{baseapi}}", "local-missions", "join-local-mission", ":missionId"], "variable": [{"key":"missionId","value":""}] } } },
+        { "name": "get-my-local-missions(Partner)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/local-missions/get-my-local-missions", "host": ["{{domain}}"], "path": ["{{baseapi}}", "local-missions", "get-my-local-missions"] } } },
+        { "name": "get-mission-participants(Partner)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/local-missions/get-local-mission-participants/:missionId", "host": ["{{domain}}"], "path": ["{{baseapi}}", "local-missions", "get-local-mission-participants", ":missionId"], "variable": [{"key":"missionId","value":""}] } } },
+        { "name": "approve-participant(Partner)", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/local-missions/approve-local-mission/:participationId", "host": ["{{domain}}"], "path": ["{{baseapi}}", "local-missions", "approve-local-mission", ":participationId"], "variable": [{"key":"participationId","value":""}] } } }
+      ]
+    },
+    {
+      "name": "11_Partner-Ads",
+      "item": [
+        { "name": "get-all-partner-ads(Public)", "request": { "method": "GET", "url": { "raw": "{{domain}}{{baseapi}}/partner-ads/get-all-partner-ads?page=1&limit=10&status=active&search=", "host": ["{{domain}}"], "path": ["{{baseapi}}", "partner-ads", "get-all-partner-ads"], "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"},{"key":"status","value":"active"},{"key":"search","value":""}] } } },
+        { "name": "get-single-partner-ad(Public)", "request": { "method": "GET", "url": { "raw": "{{domain}}{{baseapi}}/partner-ads/get-single-partner-ad/:adId", "host": ["{{domain}}"], "path": ["{{baseapi}}", "partner-ads", "get-single-partner-ad", ":adId"], "variable": [{"key":"adId","value":""}] } } },
+        { "name": "get-my-partner-ads(Partner)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/partner-ads/get-my-partner-ads", "host": ["{{domain}}"], "path": ["{{baseapi}}", "partner-ads", "get-my-partner-ads"] } } },
+        { "name": "create-collection-point(Partner)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "body": { "mode": "formdata", "formdata": [{ "key": "title", "value": "Kokoon Point" }, { "key": "image", "type": "file" }] }, "url": { "raw": "{{domain}}{{baseapi}}/partner-ads/create-collection-point", "host": ["{{domain}}"], "path": ["{{baseapi}}", "partner-ads", "create-collection-point"] } } }
+      ]
+    },
+    {
+      "name": "12_Contacts",
+      "item": [
+        { "name": "get-all-contacts(Public)", "request": { "method": "GET", "url": { "raw": "{{domain}}{{baseapi}}/contacts/get-all-contacts?page=1&limit=10&type=shelter&status=active", "host": ["{{domain}}"], "path": ["{{baseapi}}", "contacts", "get-all-contacts"], "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"},{"key":"type","value":"shelter"},{"key":"status","value":"active"}] } } },
+        { "name": "create-contact(Admin)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "body": { "mode": "formdata", "formdata": [{ "key": "name", "value": "SPA Paris" }, { "key": "type", "value": "shelter" }, { "key": "image", "type": "file" }] }, "url": { "raw": "{{domain}}{{baseapi}}/contacts/create-contact", "host": ["{{domain}}"], "path": ["{{baseapi}}", "contacts", "create-contact"] } } }
+      ]
+    },
+    {
+      "name": "13_Rewards",
+      "item": [
+        { "name": "get-all-rewards(Public)", "request": { "method": "GET", "url": { "raw": "{{domain}}{{baseapi}}/rewards/get-all-rewards?page=1&limit=10", "host": ["{{domain}}"], "path": ["{{baseapi}}", "rewards", "get-all-rewards"], "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"}] } } },
+        { "name": "redeem-reward(User)", "request": { "method": "POST", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/rewards/redeem-reward/:rewardId", "host": ["{{domain}}"], "path": ["{{baseapi}}", "rewards", "redeem-reward", ":rewardId"], "variable": [{"key":"rewardId","value":""}] } } },
+        { "name": "admin-get-redemptions(Admin)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{adminToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/rewards/admin/get-all-redemptions?page=1&limit=10&status=pending", "host": ["{{domain}}"], "path": ["{{baseapi}}", "rewards", "admin", "get-all-redemptions"], "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"},{"key":"status","value":"pending"}] } } }
+      ]
+    },
+    {
+      "name": "14_Notifications",
+      "item": [
+        { "name": "get-my-notifications(User/Admin/Partner)", "request": { "method": "GET", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/notifications/get-my-notifications?page=1&limit=20", "host": ["{{domain}}"], "path": ["{{baseapi}}", "notifications", "get-my-notifications"], "query": [{"key":"page","value":"1"},{"key":"limit","value":"20"}] } } },
+        { "name": "mark-as-read(User/Admin/Partner)", "request": { "method": "PATCH", "header": [{ "key": "Authorization", "value": "Bearer {{accessToken}}" }], "url": { "raw": "{{domain}}{{baseapi}}/notifications/mark-as-read/:notificationId", "host": ["{{domain}}"], "path": ["{{baseapi}}", "notifications", "mark-as-read", ":notificationId"], "variable": [{"key":"notificationId","value":""}] } } }
+      ]
+    },
+    {
+      "name": "15_Solidarity(Shopify)",
+      "item": [
+        { "name": "get-shopify-products(Public)", "request": { "method": "GET", "url": { "raw": "{{domain}}{{baseapi}}/solidarity/shopify-products?page=1&limit=10", "host": ["{{domain}}"], "path": ["{{baseapi}}", "solidarity", "shopify-products"], "query": [{"key":"page","value":"1"},{"key":"limit","value":"10"}] } } },
+        { "name": "get-shopify-collections(Public)", "request": { "method": "GET", "url": { "raw": "{{domain}}{{baseapi}}/solidarity/shopify-collections", "host": ["{{domain}}"], "path": ["{{baseapi}}", "solidarity", "shopify-collections"] } } }
+      ]
+    }
+  ],
+  "variable": [
+    { "key": "domain", "value": "http://localhost:5000" },
+    { "key": "baseapi", "value": "/api/v1" },
+    { "key": "accessToken", "value": "" },
+    { "key": "adminToken", "value": "" }
+  ]
+}

@@ -21,7 +21,9 @@ export enum RefusalReason {
 }
 
 export interface IDonationProof extends Document {
-  user: Types.ObjectId | string;
+  user?: Types.ObjectId | string;
+  donorName?: string;
+  donorEmail?: string;
   collectionPoint: Types.ObjectId | string;
   amount: number;
   category: DonationCategory;

@@ -221,6 +221,7 @@ const getAllDonations = async (req: any) => {
     }
   }
 
+
   // get payment populate pipeline
   const pipeline: any[] = [
     {
@@ -233,17 +234,42 @@ const getAllDonations = async (req: any) => {
     },
     { $unwind: { path: "$payment", preserveNullAndEmptyArrays: true } },
     {
+      $lookup: {
+        from: "donationproofs",
+        let: { refId: "$referenceId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $ne: ["$$refId", null] },
+                  { $ne: ["$$refId", ""] },
+                  { $eq: ["$_id", { $toObjectId: "$$refId" }] }
+                ]
+              }
+            }
+          }
+        ],
+        as: "proof"
+      }
+    },
+    { $unwind: { path: "$proof", preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: "partnerads",
+        localField: "proof.collectionPoint",
+        foreignField: "_id",
+        as: "collectionPoint"
+      }
+    },
+    { $unwind: { path: "$collectionPoint", preserveNullAndEmptyArrays: true } },
+    {
       $addFields: {
         method: { $ifNull: ["$method", "$payment.provider"] },
-        status: {
-          $cond: {
-            if: { $and: ["$payment", { $ne: ["$payment", null] }] },
-            then: "$payment.status",
-            else: "$status",
-          },
-        },
-      },
-    },
+        status: { $cond: { if: { $and: ["$payment", { $ne: ["$payment", null] }] }, then: "$payment.status", else: "$status" } },
+        association: { $ifNull: ["$collectionPoint.title", "HESTEKA"] }
+      }
+    }
   ];
 
   if (status) {
@@ -326,9 +352,23 @@ export const donationService = {
   getDonationStats: async () => {
     const [stats] = await donationModel.aggregate([
       {
+        $lookup: {
+          from: "payments",
+          localField: "payment",
+          foreignField: "_id",
+          as: "paymentInfo"
+        }
+      },
+      { $unwind: { path: "$paymentInfo", preserveNullAndEmptyArrays: true } },
+      {
+        $addFields: {
+          realStatus: { $cond: { if: "$paymentInfo", then: "$paymentInfo.status", else: "$status" } }
+        }
+      },
+      {
         $facet: {
           completedStats: [
-            { $match: { status: "completed" } },
+            { $match: { realStatus: "completed" } },
             {
               $group: {
                 _id: null,
@@ -339,7 +379,7 @@ export const donationService = {
             },
           ],
           pendingStats: [
-            { $match: { status: "pending" } },
+            { $match: { realStatus: "pending" } },
             {
               $group: {
                 _id: null,
@@ -363,7 +403,7 @@ export const donationService = {
       totalCollected: completed.totalCollected,
       returnedToAssos: completed.totalCollected * 0.9,
       pendingAmount: pending.totalPending,
-      averageBasket: completed.avgBasket || 0,
+      averageBasket: completed.avgBasket ? Math.round(completed.avgBasket * 100) / 100 : 0,
     };
   },
 
@@ -412,12 +452,7 @@ export const donationService = {
       doc.fontSize(20).text("HESTEKA", { align: "center" });
       doc.fontSize(10).text("ASSOCIATION", { align: "center" }).moveDown(2);
 
-      doc
-        .fontSize(16)
-        .text(isFiscal ? "OFFICIAL FISCAL RECEIPT" : "DONATION RECEIPT", {
-          align: "center",
-        })
-        .moveDown(1);
+      doc.fontSize(16).text(isFiscal ? "OFFICIAL FISCAL RECEIPT" : "DONATION RECEIPT", { align: "center" }).moveDown(1);
       doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke("#e8ddd0").moveDown(2);
 
       const tableTop = doc.y;
@@ -463,16 +498,12 @@ export const donationService = {
         });
 
       doc.moveDown(6);
-      doc
-        .fontSize(8)
-        .font("Helvetica-Oblique")
-        .fillColor("#9a8a7a")
-        .text(
-          isFiscal
-            ? "This fiscal receipt is issued in accordance with current tax laws. It entitles the donor to a tax deduction for their charitable contribution."
-            : "Thank you for your generous donation. Your support helps us continue our mission to help animals in need.",
-          { align: "center" },
-        );
+      doc.fontSize(8).font("Helvetica-Oblique").fillColor("#9a8a7a").text(
+        isFiscal
+          ? "This fiscal receipt is issued in accordance with current tax laws. It entitles the donor to a tax deduction for their charitable contribution."
+          : "Thank you for your generous donation. Your support helps us continue our mission to help animals in need.",
+        { align: "center" }
+      );
 
       doc.end();
     });
