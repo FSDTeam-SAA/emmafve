@@ -140,6 +140,20 @@ const sendReceiptEmail = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
+const getMyDonations = asyncHandler(async (req: Request, res: Response) => {
+  const email = req.user?.email;
+  if (!email) {
+    return ApiResponse.sendError(res, 401, "Unauthorized: No email found");
+  }
+  const donations = await donationService.getMyDonations(email);
+  return ApiResponse.sendSuccess(
+    res,
+    200,
+    "My donations fetched successfully",
+    donations,
+  );
+});
+
 export const donationController = {
   initiateStripeDonation,
   initiatePayPalDonation,
@@ -148,5 +162,6 @@ export const donationController = {
   getSingleDonation,
   getDonationStats,
   getDonationByReceiptId,
+  getMyDonations,
   sendReceiptEmail,
 };

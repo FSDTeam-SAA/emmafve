@@ -356,6 +356,67 @@ const getDonationByReceiptId = async (receiptId: string) => {
   };
 };
 
+const getMyDonations = async (email: string) => {
+  const pipeline: any[] = [
+    { $match: { donorEmail: email } },
+    {
+      $lookup: {
+        from: "payments",
+        localField: "payment",
+        foreignField: "_id",
+        as: "payment",
+      },
+    },
+    { $unwind: { path: "$payment", preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: "donationproofs",
+        let: { refId: "$referenceId" },
+        pipeline: [
+          {
+            $match: {
+              $expr: {
+                $and: [
+                  { $ne: ["$$refId", null] },
+                  { $ne: ["$$refId", ""] },
+                  { $eq: ["$_id", { $toObjectId: "$$refId" }] },
+                ],
+              },
+            },
+          },
+        ],
+        as: "proof",
+      },
+    },
+    { $unwind: { path: "$proof", preserveNullAndEmptyArrays: true } },
+    {
+      $lookup: {
+        from: "partnerads",
+        localField: "proof.collectionPoint",
+        foreignField: "_id",
+        as: "collectionPoint",
+      },
+    },
+    { $unwind: { path: "$collectionPoint", preserveNullAndEmptyArrays: true } },
+    {
+      $addFields: {
+        method: { $ifNull: ["$method", "$payment.provider"] },
+        status: {
+          $cond: {
+            if: { $and: ["$payment", { $ne: ["$payment", null] }] },
+            then: "$payment.status",
+            else: "$status",
+          },
+        },
+        association: { $ifNull: ["$collectionPoint.title", "HESTEKA"] },
+      },
+    },
+    { $sort: { createdAt: -1 } }
+  ];
+
+  return await donationModel.aggregate(pipeline);
+};
+
 export const donationService = {
   initiateStripeDonation,
   initiatePayPalDonation,
@@ -363,6 +424,7 @@ export const donationService = {
   getAllDonations,
   getSingleDonation,
   getDonationByReceiptId,
+  getMyDonations,
   syncPhysicalDonation,
   getDonationStats: async () => {
     const [stats] = await donationModel.aggregate([
