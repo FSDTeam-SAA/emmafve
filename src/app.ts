@@ -13,13 +13,14 @@ import { notFound } from "./middleware/notFound";
 
 const app = express();
 const server = http.createServer(app);
+
 const allowedOrigins = [
   config.frontendUrl,
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:5173",
   "http://localhost:4173",
-  "http://10.10.5.111:3000",
+  "https://admin.hesteka.com",
 ].filter(Boolean);
 
 if (config.env === "development") {
@@ -40,30 +41,31 @@ app.use(
   }),
 );
 
-app.get("/api/v1/ping", (req: Request, res: Response) => {
+app.get("/api/v1/ping", (_req: Request, res: Response) => {
   res.json({
     success: true,
     message: "Server is alive",
     time: new Date(),
   });
 });
-app.use(cookieParser());
-// Stripe Webhook needs raw body
-app.use("/api/v1/webhook/stripe", express.raw({ type: "application/json" }));
 
+app.use(cookieParser());
+
+app.use("/api/v1/webhook/stripe", express.raw({ type: "application/json" }));
 app.use("/api/v1/webhook/paypal", express.raw({ type: "application/json" }));
 
-// Conditional body parser to skip webhook route
-app.use((req, res, next) => {
+// ✅ একটাই parser — দুটোই skip করে
+app.use((req: Request, res: Response, next: NextFunction) => {
   if (
     req.originalUrl.includes("/webhook/stripe") ||
     req.originalUrl.includes("/webhook/paypal")
   ) {
     return next();
   }
-  express.json()(req, res, next);
+  express.json({ limit: "30mb" })(req, res, next);
 });
-app.use(express.urlencoded({ extended: true }));
+
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 app.use(
   "/stamps",
   express.static(path.join(process.cwd(), "public", "stamps")),
@@ -74,7 +76,7 @@ app.use("/api/v1", routes);
 app.get("/", serverRunningTemplate);
 app.use(notFound);
 
-//global error handler
+// Global error handler
 app.use(globalErrorHandler);
 
 // Socket.IO setup

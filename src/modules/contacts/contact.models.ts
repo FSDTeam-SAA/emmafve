@@ -47,6 +47,15 @@ const contactSchema = new Schema<IContact>(
       secure_url: String,
       _id: false,
     },
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+      },
+    },
     status: {
       type: String,
       enum: Object.values(ContactStatus),
@@ -60,6 +69,7 @@ const contactSchema = new Schema<IContact>(
 
 contactSchema.index({ type: 1, status: 1, name: 1 });
 contactSchema.index({ name: "text", description: "text", address: "text" });
+contactSchema.index({ location: "2dsphere" }, { sparse: true });
 
 export const contactModel: Model<IContact> = mongoose.model<IContact>(
   "Contact",
