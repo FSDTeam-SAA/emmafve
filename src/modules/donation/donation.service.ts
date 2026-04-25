@@ -117,7 +117,7 @@ const initiatePayPalDonation = async (
   // 1️⃣ PayPal order create + PENDING payment create
   const result = await paymentService.createPayPalOrder({
     amount: amount as number,
-    currency: PaymentCurrency.EUR as PaymentCurrency,
+    currency: PaymentCurrency.USD as PaymentCurrency,
     payerEmail: donorEmail as string,
     payerName: donorName as string,
     userId: userId as string,
