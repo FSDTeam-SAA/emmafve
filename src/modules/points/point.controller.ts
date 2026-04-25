@@ -4,17 +4,34 @@ import { asyncHandler } from "../../utils/asyncHandler";
 import { pointService } from "./point.service";
 
 export const getMyPoints = asyncHandler(async (req: Request, res: Response) => {
-  const { balance, transactions, meta } = await pointService.getMyPoints(req);
-  ApiResponse.sendSuccess(
-    res,
-    200,
-    "Points fetched successfully",
-    { balance, transactions },
-    meta,
-  );
+  const result = await pointService.getMyPoints(req);
+  return ApiResponse.sendSuccess(res, 200, "Points fetched successfully", result);
 });
 
-export const redeemPoints = asyncHandler(async (req: Request, res: Response) => {
+const redeemPoints = asyncHandler(async (req: Request, res: Response) => {
   const result = await pointService.redeemPoints(req);
-  ApiResponse.sendSuccess(res, 200, "Points redeemed successfully", result);
+  return ApiResponse.sendSuccess(res, 200, "Points redeemed successfully", result);
 });
+
+const getPointConfig = asyncHandler(async (req: Request, res: Response) => {
+  const result = await pointService.getConfig();
+  return ApiResponse.sendSuccess(res, 200, "Point config fetched successfully", result);
+});
+
+const updatePointConfig = asyncHandler(async (req: Request, res: Response) => {
+  const result = await pointService.updateConfig(req.body);
+  return ApiResponse.sendSuccess(res, 200, "Point config updated successfully", result);
+});
+
+const getPointStats = asyncHandler(async (req: Request, res: Response) => {
+  const result = await pointService.getAdminStats();
+  return ApiResponse.sendSuccess(res, 200, "Point stats fetched successfully", result);
+});
+
+export const pointController = {
+  getMyPoints,
+  redeemPoints,
+  getPointConfig,
+  updatePointConfig,
+  getPointStats,
+};

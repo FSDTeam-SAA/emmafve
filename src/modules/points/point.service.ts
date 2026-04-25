@@ -8,6 +8,8 @@ import {
   RedeemPointsPayload,
 } from "./point.interface";
 import { pointTransactionModel } from "./point.models";
+import { pointConfigModel } from "./pointConfig.models";
+import { UpdatePointConfigPayload } from "./pointConfig.interface";
 
 export const pointService = {
   async getMyPoints(req: Request) {
@@ -127,5 +129,61 @@ export const pointService = {
       await userModel.findByIdAndUpdate(userId, { $inc: { pointsBalance: points } });
       throw error;
     }
+  },
+
+  async getConfig() {
+    let config = await pointConfigModel.findOne();
+    if (!config) {
+      config = await pointConfigModel.create({});
+    }
+    return config;
+  },
+
+  async updateConfig(payload: UpdatePointConfigPayload) {
+    const config = await pointConfigModel.findOneAndUpdate({}, payload, {
+      new: true,
+      upsert: true,
+    });
+    return config;
+  },
+
+  async getAdminStats() {
+    const now = new Date();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [stats] = await pointTransactionModel.aggregate([
+      {
+        $facet: {
+          distributed: [
+            { $match: { type: PointTransactionType.EARN } },
+            { $group: { _id: null, total: { $sum: "$points" } } },
+          ],
+          thisMonth: [
+            { $match: { type: PointTransactionType.EARN, createdAt: { $gte: startOfMonth } } },
+            { $group: { _id: null, total: { $sum: "$points" } } },
+          ],
+          exchanged: [
+            { $match: { type: PointTransactionType.REDEEM } },
+            { $group: { _id: null, total: { $sum: { $abs: "$points" } } } },
+          ],
+        },
+      },
+    ]);
+
+    const totalUsersPoints = await userModel.aggregate([
+      { $group: { _id: null, total: { $sum: "$pointsBalance" } } },
+    ]);
+
+    return {
+      distributed: {
+        total: stats.distributed[0]?.total || 0,
+        thisMonth: stats.thisMonth[0]?.total || 0,
+      },
+      exchanged: {
+        total: stats.exchanged[0]?.total || 0,
+      },
+      pending: totalUsersPoints[0]?.total || 0,
+      expired: 0, // expiration logic not yet implemented
+    };
   },
 };

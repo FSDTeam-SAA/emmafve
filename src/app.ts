@@ -18,7 +18,8 @@ const allowedOrigins = [
   "http://localhost:3000",
   "http://localhost:3001",
   "http://localhost:5173",
-  "http://10.10.5.111:3000", 
+  "http://localhost:4173",
+  "http://10.10.5.111:3000",
 ].filter(Boolean);
 
 if (config.env === "development") {

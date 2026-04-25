@@ -1,19 +1,23 @@
 import { Router } from "express";
 import { authGuard, allowRole } from "../../middleware/auth.middleware";
 import { validateRequest } from "../../middleware/validateRequest.middleware";
-import { getMyPoints, redeemPoints } from "./point.controller";
+import { pointController } from "./point.controller";
 import { pointValidation } from "./point.validation";
 
 const router = Router();
 
-router.use(authGuard, allowRole("user"));
-
-router.get("/get-my-points", getMyPoints);
+router.get("/get-my-points", authGuard, allowRole("user"), pointController.getMyPoints);
 
 router.post(
   "/redeem-points",
+  authGuard,
+  allowRole("user"),
   validateRequest(pointValidation.redeemPointsSchema),
-  redeemPoints,
+  pointController.redeemPoints,
 );
+
+router.get("/admin/config", authGuard, allowRole("admin"), pointController.getPointConfig);
+router.patch("/admin/config", authGuard, allowRole("admin"), pointController.updatePointConfig);
+router.get("/admin/stats", authGuard, allowRole("admin"), pointController.getPointStats);
 
 export const pointRoute = router;

@@ -11,7 +11,16 @@ const donationProofSchema = new Schema<IDonationProof>(
     user: {
       type: Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,
+    },
+    donorName: {
+      type: String,
+      trim: true,
+    },
+    donorEmail: {
+      type: String,
+      trim: true,
+      lowercase: true,
     },
     collectionPoint: {
       type: Schema.Types.ObjectId,
