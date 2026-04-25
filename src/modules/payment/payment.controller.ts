@@ -13,7 +13,9 @@ const createStripePaymentIntent = asyncHandler(
   async (req: Request, res: Response) => {
     const payload: CreateStripePaymentIntentPayload = req.body;
 
-    const result = await paymentService.createStripePaymentIntent(payload);
+    const result = await paymentService.createStripePaymentIntent(
+      payload as any,
+    );
 
     return ApiResponse.sendSuccess(
       res,

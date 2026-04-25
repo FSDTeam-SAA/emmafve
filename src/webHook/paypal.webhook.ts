@@ -1,25 +1,25 @@
 import { Request, Response } from "express";
 import config from "../config";
-import { paymentService } from "../modules/payment/payment.service";
-import { donationService } from "../modules/donation/donation.service";
+import { paymentModel } from "../modules/payment/payment.models";
+import { donationModel } from "../modules/donation/donation.models";
 import {
-  PaymentCurrency,
   PaymentProvider,
   PaymentStatus,
+  PaymentCurrency,
 } from "../modules/payment/payment.interface";
+import { getIo } from "../socket/server";
+import mongoose from "mongoose";
 
 const verifyPayPalWebhook = async (
   headers: Record<string, string>,
   rawBody: string,
 ): Promise<boolean> => {
   const { clientId, clientSecret, mode, webhookId } = config.paypal;
-
   const baseUrl =
     mode === "sandbox"
       ? "https://api-m.sandbox.paypal.com"
       : "https://api-m.paypal.com";
 
-  // Access token নাও
   const tokenRes = await fetch(`${baseUrl}/v1/oauth2/token`, {
     method: "POST",
     headers: {
@@ -32,7 +32,6 @@ const verifyPayPalWebhook = async (
   const tokenData = await tokenRes.json();
   if (!tokenRes.ok) return false;
 
-  // Signature verify করো
   const verifyRes = await fetch(
     `${baseUrl}/v1/notifications/verify-webhook-signature`,
     {
@@ -62,9 +61,11 @@ export const paypalWebhookHandler = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  const rawBody = JSON.stringify(req.body);
+  const rawBody =
+    req.body instanceof Buffer
+      ? req.body.toString("utf8")
+      : JSON.stringify(req.body);
 
-  // Signature verify করো
   const isValid = await verifyPayPalWebhook(
     req.headers as Record<string, string>,
     rawBody,
@@ -80,55 +81,104 @@ export const paypalWebhookHandler = async (
   try {
     switch (event.event_type) {
       case "PAYMENT.CAPTURE.COMPLETED": {
-        const capture = event.resource;
-        const captureId = capture.id;
-        const amount = parseFloat(capture.amount.value);
-        const currency =
-          capture.amount.currency_code.toLowerCase() as PaymentCurrency;
-        const payerEmail = capture.payer?.email_address ?? "";
-        const payerName = capture.payer?.name
-          ? `${capture.payer.name.given_name} ${capture.payer.name.surname}`
-          : "";
+        const session = await mongoose.startSession();
+        session.startTransaction();
 
-        // Payment record তৈরি করো
-        const payment = await paymentService.handleWebhookPayment(
-          PaymentProvider.PAYPAL,
-          captureId,
-          PaymentStatus.COMPLETED,
-          { payerEmail, payerName },
-          amount,
-          currency,
-        );
+        try {
+          const capture = event.resource;
+          const captureId = capture.id;
 
-        // Donation record তৈরি করো
-        await donationService.createDonationFromPayment(payment);
+          // ✅ captureId দিয়ে payment খোঁজো
+          // PayPal আগে orderId দিয়ে payment বানিয়েছিলাম,
+          // capture এর পর captureId set করা হয়েছে
+          const payment = await paymentModel.findOneAndUpdate(
+            {
+              provider: PaymentProvider.PAYPAL,
+              captureId, // payment.service এ set করা হয়েছে
+            },
+            { $set: { status: PaymentStatus.COMPLETED } },
+            { new: true, session },
+          );
+
+          if (!payment) {
+            // fallback — পুরনো data বা direct webhook
+            await session.abortTransaction();
+            session.endSession();
+            break;
+          }
+
+          // ✅ donation update
+          await donationModel.updateOne(
+            { payment: payment._id },
+            { $set: { status: "completed" } },
+            { session },
+          );
+
+          // ✅ Stripe এর মতো socket emit
+          const io = getIo();
+          io.to(payment.payerEmail).emit("payment:update", {
+            orderId: payment.providerTransactionId,
+            captureId,
+            status: "COMPLETED",
+          });
+
+          await session.commitTransaction();
+          session.endSession();
+        } catch (err) {
+          await session.abortTransaction();
+          session.endSession();
+          throw err;
+        }
 
         break;
       }
 
       case "PAYMENT.CAPTURE.DENIED": {
-        const capture = event.resource;
-        await paymentService.handleWebhookPayment(
-          PaymentProvider.PAYPAL,
-          capture.id,
-          PaymentStatus.FAILED,
-          {},
-          0,
-          "eur" as PaymentCurrency,
-        );
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+          const capture = event.resource;
+
+          const payment = await paymentModel.findOneAndUpdate(
+            { provider: PaymentProvider.PAYPAL, captureId: capture.id },
+            { $set: { status: PaymentStatus.FAILED } },
+            { new: true, session },
+          );
+
+          if (payment) {
+            await donationModel.updateOne(
+              { payment: payment._id },
+              { $set: { status: "cancelled" } },
+              { session },
+            );
+
+            const io = getIo();
+            io.to(payment.payerEmail).emit("payment:update", {
+              captureId: capture.id,
+              status: "FAILED",
+            });
+          }
+
+          await session.commitTransaction();
+          session.endSession();
+        } catch (err) {
+          await session.abortTransaction();
+          session.endSession();
+          throw err;
+        }
+
         break;
       }
 
       case "PAYMENT.CAPTURE.REFUNDED": {
         const capture = event.resource;
-        await paymentService.handleWebhookPayment(
-          PaymentProvider.PAYPAL,
-          capture.id,
-          PaymentStatus.REFUNDED,
-          {},
-          0,
-          "eur" as PaymentCurrency,
+
+        await paymentModel.findOneAndUpdate(
+          { provider: PaymentProvider.PAYPAL, captureId: capture.id },
+          { $set: { status: PaymentStatus.REFUNDED } },
         );
+
         break;
       }
 

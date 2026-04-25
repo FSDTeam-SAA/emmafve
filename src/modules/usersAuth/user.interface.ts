@@ -1,7 +1,5 @@
 import { Request } from "express";
-import { Document } from "mongoose";
-
-// req.user is now globally defined in src/types/index.d.ts Haus
+import { Document, Types } from "mongoose";
 
 export enum role {
   ADMIN = "admin",
@@ -15,13 +13,10 @@ export enum authProvider {
   LOCAL = "local",
 }
 
-
-
 export enum status {
   ACTIVE = "active",
   INACTIVE = "inactive",
   BLOCKED = "blocked",
-  // DELETED = "deleted",
   BANNED = "banned",
   PENDING = "pending",
   REJECT = "reject",
@@ -31,7 +26,7 @@ export enum updateStatus {
   ACTIVE = "active",
   INACTIVE = "inactive",
   BLOCKED = "blocked",
-  BANNED = "banned"
+  BANNED = "banned",
 }
 
 export interface IUser extends Document {
@@ -70,6 +65,7 @@ export interface IUser extends Document {
   rememberMe: boolean;
   fcmTokens: string[];
   lastLogin: Date;
+  blockedUsers: Types.ObjectId[]; // users blocked by this user
   comparePassword: (password: string) => Promise<boolean>;
   createAccessToken: () => string;
   createRefreshToken: () => string;
