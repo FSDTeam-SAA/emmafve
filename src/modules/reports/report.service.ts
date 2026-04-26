@@ -248,6 +248,166 @@ export const reportService = {
     };
   },
 
+  // Get my reports
+  async getMyReports(req: Request) {
+    const authorId = req.user?._id;
+    if (!authorId) throw new CustomError(401, "Unauthorized");
+
+    const {
+      page = 1,
+      limit = 10,
+      search,
+      status = "all", // lost, found, rescued, sighted, all
+      from, // date range start
+      to, // date range end
+      species,
+      sortBy,
+      sort = "ascending", // default ascending
+      lat,
+      lng,
+      radius, // in km, defaults to 5 km when lat/lng are provided
+    } = req.query;
+
+    const skip = (Number(page) - 1) * Number(limit);
+    const perPage = Number(limit);
+
+    // Build filter object
+    const filter: any = { author: authorId };
+
+    // Radius / geospatial filter
+    const hasGeo = lat !== undefined && lng !== undefined;
+    if (hasGeo) {
+      const latNum = parseFloat(lat as string);
+      const lngNum = parseFloat(lng as string);
+      const radiusKm = radius !== undefined ? parseFloat(radius as string) : 5;
+
+      if (isNaN(latNum) || isNaN(lngNum)) {
+        throw new CustomError(400, "Invalid lat/lng values. Must be valid numbers.");
+      }
+      if (isNaN(radiusKm) || radiusKm <= 0) {
+        throw new CustomError(400, "Invalid radius value. Must be a positive number (km).");
+      }
+
+      // Convert km to radians for $centerSphere (Earth radius = 6378.1 km)
+      filter.location = {
+        $geoWithin: {
+          $centerSphere: [[lngNum, latNum], radiusKm / 6378.1],
+        },
+      };
+    }
+
+    // Search (title/breed/description)
+    if (search) {
+      const searchRegex = new RegExp(search as string, "i");
+      filter.$or = [
+        { animalName: searchRegex },
+        { title: searchRegex },
+        { breed: searchRegex },
+        { description: searchRegex },
+      ];
+    }
+
+    // Status filter
+    if (status && status !== "all") {
+      const validStatuses = ["lost", "found", "rescued", "sighted"];
+      if (!validStatuses.includes(status as string)) {
+        throw new CustomError(
+          400,
+          `Invalid status. Must be one of: ${validStatuses.join(", ")}, or 'all'`
+        );
+      }
+      filter.status = status;
+    }
+
+    // Category (Species) filter
+    if (species) {
+      filter.species = species;
+    }
+
+    // Date range filter
+    if (from || to) {
+      const isValidDate = (date: any) => {
+        const d = new Date(date);
+        return !isNaN(d.getTime());
+      };
+
+      if (from && !isValidDate(from)) {
+        throw new CustomError(400, "Invalid 'from' date. Format must be YYYY-MM-DD or ISO");
+      }
+
+      if (to && !isValidDate(to)) {
+        throw new CustomError(400, "Invalid 'to' date. Format must be YYYY-MM-DD or ISO");
+      }
+
+      if (from && to && new Date(from as string) > new Date(to as string)) {
+        throw new CustomError(400, "'from' date cannot be greater than 'to' date");
+      }
+
+      filter.createdAt = {};
+
+      if (from) {
+        const fromDate = new Date(from as string);
+        fromDate.setHours(0, 0, 0, 0);
+        filter.createdAt.$gte = fromDate;
+      }
+
+      if (to) {
+        const toDate = new Date(to as string);
+        toDate.setHours(23, 59, 59, 999);
+        filter.createdAt.$lte = toDate;
+      }
+    }
+
+    if (sort && sort !== "ascending" && sort !== "descending") {
+      throw new CustomError(400, "Invalid sort value. Must be 'ascending' or 'descending'");
+    }
+
+    const sortFields: Record<string, string> = {
+      date: "createdAt",
+      name: "animalName",
+      title: "title",
+      status: "status",
+      species: "species",
+    };
+    const sortByValue = typeof sortBy === "string" ? sortBy : "date";
+    const sortField = sortFields[sortByValue.toLowerCase()] ?? null;
+    if (!sortField) {
+      throw new CustomError(400, `Invalid sortBy value. Must be one of: ${Object.keys(sortFields).join(", ")}`);
+    }
+    const sortOrder: 1 | -1 = sort === "descending" ? -1 : 1;
+
+    // Query with pagination and performance optimization
+    const [reports, total] = await Promise.all([
+      reportModel
+        .find(filter)
+        .skip(skip)
+        .limit(perPage)
+        .sort({ [sortField]: sortOrder })
+        .populate("author", "firstName lastName email profileImage")
+        .populate({
+          path: "comments",
+          select: "-__v -report",
+          populate: [
+            { path: "author", select: "firstName lastName profileImage" },
+            { path: "replies", select: "-__v", populate: { path: "author", select: "firstName lastName profileImage" } },
+            { path: "likes", select: "firstName lastName profileImage" }
+          ]
+        })
+        .lean(),
+      reportModel.countDocuments(filter),
+    ]);
+
+    return {
+      reports,
+      meta: {
+        total,
+        page: Number(page),
+        limit: perPage,
+        totalPages: Math.ceil(total / perPage),
+      },
+    };
+  },
+
   // Get a single report by ID
   async getReportById(reportId: string) {
     const report = await reportModel

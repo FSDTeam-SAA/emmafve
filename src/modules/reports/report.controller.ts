@@ -18,6 +18,11 @@ export const getAllReports = asyncHandler(async (req: Request, res: Response) =>
   ApiResponse.sendSuccess(res, 200, "Reports fetched successfully", reports, meta);
 });
 
+export const getMyReports = asyncHandler(async (req: Request, res: Response) => {
+  const { reports, meta } = await reportService.getMyReports(req);
+  ApiResponse.sendSuccess(res, 200, "My reports fetched successfully", reports, meta);
+});
+
 export const getReportById = asyncHandler(async (req: Request, res: Response) => {
   const { reportId } = req.params as { reportId: string };
   const report = await reportService.getReportById(reportId);

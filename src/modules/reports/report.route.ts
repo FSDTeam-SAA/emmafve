@@ -7,6 +7,7 @@ import {
   deleteReport,
   addImage,
   removeImage,
+  getMyReports,
 } from "./report.controller";
 import { authGuard } from "../../middleware/auth.middleware";
 import { validateRequest } from "../../middleware/validateRequest.middleware";
@@ -26,6 +27,8 @@ router.get("/get-single-report/:reportId", getReportById);
 // Protected routes (requires login)
 router.use(authGuard);
 
+router.get("/get-my-reports", getMyReports);
+
 router.post(
   "/create-report",
   upload.fields([{ name: "images", maxCount: 3 }]),
@@ -40,10 +43,10 @@ router.patch(
   updateReport
 );
 
-router.delete("/delete-report/:reportId", deleteReport);
+router.delete("/delete-report/:reportId", authGuard,   deleteReport);
 
-router.post("/add-image/:reportId", upload.single("image"), addImage);
+router.post("/add-image/:reportId", authGuard, upload.single("image"), addImage);
 
-router.delete("/remove-image/:reportId", removeImage);
+router.delete("/remove-image/:reportId", authGuard, removeImage);
 
 export const reportRoute = router;
