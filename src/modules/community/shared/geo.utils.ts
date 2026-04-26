@@ -131,12 +131,19 @@ export const buildNearQuery = (lat: number, lng: number, radiusKm: number) => {
 export const buildGeoWithinQuery = (
   lat: number,
   lng: number,
-  radiusKm: number,
+  radiusKm?: number,
 ) => {
   assertValidCoordinates(lat, lng);
 
   const EARTH_RADIUS_KM = 6378.1;
-  const radiusInRadians = radiusKm / EARTH_RADIUS_KM;
+
+  const finalRadiusKm = radiusKm ?? 50;
+
+  if (finalRadiusKm <= 0) {
+    throw new CustomError(400, "Radius must be greater than 0 km");
+  }
+
+  const radiusInRadians = finalRadiusKm / EARTH_RADIUS_KM;
 
   return {
     location: {

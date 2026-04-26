@@ -42,11 +42,6 @@ const verifyPayPalWebhook = async (
     webhook_event: JSON.parse(rawBody),
   };
 
-  console.log("Sending Verification Payload to PayPal:", {
-    ...verifyPayload,
-    webhook_event: "OMITTED_FOR_LOGS", // event ডাটা লগে বড় দেখাবে তাই হাইড করলাম
-  });
-
   const verifyRes = await fetch(
     `${baseUrl}/v1/notifications/verify-webhook-signature`,
     {
@@ -60,7 +55,6 @@ const verifyPayPalWebhook = async (
   );
 
   const verifyData = await verifyRes.json();
-  console.log("PayPal Webhook Verification Response:", verifyData);
 
   if (verifyData.verification_status !== "SUCCESS") {
     console.error("PayPal Webhook Signature Verification Failed!", {
@@ -121,15 +115,19 @@ export const paypalWebhookHandler = async (
           // fallback — যদি captureId দিয়ে না পাওয়া যায় (Race condition), তবে orderId দিয়ে খুঁজি
           if (!payment) {
             const orderId = capture.supplementary_data?.related_ids?.order_id;
-            console.log(`Payment not found by captureId ${captureId}, trying orderId: ${orderId}`);
-            
+            console.log(
+              `Payment not found by captureId ${captureId}, trying orderId: ${orderId}`,
+            );
+
             if (orderId) {
               payment = await paymentModel.findOneAndUpdate(
                 {
                   provider: PaymentProvider.PAYPAL,
                   providerTransactionId: orderId,
                 },
-                { $set: { status: PaymentStatus.COMPLETED, captureId: captureId } },
+                {
+                  $set: { status: PaymentStatus.COMPLETED, captureId: captureId },
+                },
                 { new: true, session },
               );
             }
@@ -149,7 +147,9 @@ export const paypalWebhookHandler = async (
             { session },
           );
 
-          console.log(`Donation and Payment completed for: ${payment.payerEmail}`);
+          console.log(
+            `Donation and Payment completed for: ${payment.payerEmail}`,
+          );
 
           // ✅ Stripe এর মতো socket emit
           const io = getIo();
