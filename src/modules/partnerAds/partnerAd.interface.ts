@@ -18,7 +18,7 @@ export interface IPartnerAd extends Document {
   partner: Types.ObjectId | string;
   type: PartnerAdType;
   title: string;
-  description: string;
+  description?: string;
   address: string;
   location?: IGeoPoint;
   photo?: {
@@ -30,9 +30,11 @@ export interface IPartnerAd extends Document {
 
 export interface CreatePartnerAdPayload {
   title: string;
-  description: string;
+  description?: string;
   address: string;
   location?: IGeoPoint;
+  latitude?: number | string;
+  longitude?: number | string;
 }
 
 export interface UpdatePartnerAdPayload {
@@ -40,5 +42,7 @@ export interface UpdatePartnerAdPayload {
   description?: string;
   address?: string;
   location?: IGeoPoint;
+  latitude?: number | string;
+  longitude?: number | string;
   status?: PartnerAdStatus;
 }
