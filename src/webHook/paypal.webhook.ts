@@ -35,7 +35,6 @@ const verifyPayPalWebhook = async (
   const verifyPayload = {
     auth_algo: headers["paypal-auth-algo"],
     cert_url: headers["paypal-cert-url"],
-    client_id: String(clientId || ""),
     transmission_id: headers["paypal-transmission-id"],
     transmission_sig: headers["paypal-transmission-sig"],
     transmission_time: headers["paypal-transmission-time"],
