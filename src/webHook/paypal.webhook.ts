@@ -32,6 +32,22 @@ const verifyPayPalWebhook = async (
   const tokenData = await tokenRes.json();
   if (!tokenRes.ok) return false;
 
+  const verifyPayload = {
+    auth_algo: headers["paypal-auth-algo"],
+    cert_url: headers["paypal-cert-url"],
+    client_id: String(clientId || ""),
+    transmission_id: headers["paypal-transmission-id"],
+    transmission_sig: headers["paypal-transmission-sig"],
+    transmission_time: headers["paypal-transmission-time"],
+    webhook_id: String(webhookId || ""),
+    webhook_event: JSON.parse(rawBody),
+  };
+
+  console.log("Sending Verification Payload to PayPal:", {
+    ...verifyPayload,
+    webhook_event: "OMITTED_FOR_LOGS", // event ডাটা লগে বড় দেখাবে তাই হাইড করলাম
+  });
+
   const verifyRes = await fetch(
     `${baseUrl}/v1/notifications/verify-webhook-signature`,
     {
@@ -40,26 +56,18 @@ const verifyPayPalWebhook = async (
         "Content-Type": "application/json",
         Authorization: `Bearer ${tokenData.access_token}`,
       },
-      body: JSON.stringify({
-        auth_algo: headers["paypal-auth-algo"],
-        cert_url: headers["paypal-cert-url"],
-        client_id: clientId,
-        transmission_id: headers["paypal-transmission-id"],
-        transmission_sig: headers["paypal-transmission-sig"],
-        transmission_time: headers["paypal-transmission-time"],
-        webhook_id: webhookId,
-        webhook_event: JSON.parse(rawBody),
-      }),
+      body: JSON.stringify(verifyPayload),
     },
   );
 
   const verifyData = await verifyRes.json();
   console.log("PayPal Webhook Verification Response:", verifyData);
-  
+
   if (verifyData.verification_status !== "SUCCESS") {
     console.error("PayPal Webhook Signature Verification Failed!", {
       status: verifyData.verification_status,
-      transmissionId: headers["paypal-transmission-id"]
+      transmissionId: headers["paypal-transmission-id"],
+      debug_id: verifyData.debug_id,
     });
   }
 
