@@ -47,7 +47,7 @@ const sendMessage = asyncHandler(async (req: Request, res: Response) => {
   if (!sender) throw new CustomError(401, "Unauthorized");
 
   const { conversationId } = req.params;
-  const { content } = req.body;
+  const { content, replyTo } = req.body;
 
   const files = Array.isArray(req.files)
     ? (req.files as Express.Multer.File[])
@@ -58,6 +58,7 @@ const sendMessage = asyncHandler(async (req: Request, res: Response) => {
       conversationId: conversationId as string,
       sender: sender as Types.ObjectId,
       content,
+      replyTo: replyTo || undefined,
     },
     files,
   );

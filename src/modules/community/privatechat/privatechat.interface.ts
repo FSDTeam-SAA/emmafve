@@ -1,24 +1,29 @@
 import { Document, Types } from "mongoose";
 
-// ─── Conversation ────────────────────────────────────────────────────────────
+// ─── Conversation ─────────────────────────────────────────────────────────────
 
 export interface IConversation extends Document {
   _id: Types.ObjectId;
-  participants: Types.ObjectId[]; // always 2 users
+  participants: Types.ObjectId[];
   lastMessage?: Types.ObjectId;
   lastMessageAt?: Date;
-  // unread count per participant — stored as a Map
   unreadCounts: Map<string, number>;
   createdAt: Date;
   updatedAt: Date;
 }
 
-// ─── Message ─────────────────────────────────────────────────────────────────
+// ─── Message ──────────────────────────────────────────────────────────────────
 
 export enum PrivateMessageStatus {
   SENT = "sent",
   DELIVERED = "delivered",
   READ = "read",
+}
+
+export interface IPrivateMessageMedia {
+  url: string;
+  publicId: string;
+  type: string;
 }
 
 export interface IPrivateMessage extends Document {
@@ -29,36 +34,32 @@ export interface IPrivateMessage extends Document {
   media: IPrivateMessageMedia[];
   status: PrivateMessageStatus;
   readAt?: Date;
+  replyTo?: Types.ObjectId | IPrivateMessage; // ObjectId when stored, populated when fetched
   createdAt: Date;
   updatedAt: Date;
-}
-
-export interface IPrivateMessageMedia {
-  url: string;
-  publicId: string;
-  type: string; // reuse MediaType from chat.interface if needed
 }
 
 // ─── Payloads ─────────────────────────────────────────────────────────────────
 
 export interface StartConversationPayload {
   senderId: Types.ObjectId;
-  receiverId: string; // raw string from req.body, validated in service
+  receiverId: string;
 }
 
 export interface SendPrivateMessagePayload {
   conversationId: string;
   sender: Types.ObjectId;
   content: string;
+  replyTo?: string; // raw string from req.body
 }
 
 export interface GetMessagesQuery {
-  conversationId: string | undefined;
+  conversationId: string;
   page?: number | undefined;
   limit?: number | undefined;
 }
 
 export interface MarkAsReadPayload {
-  conversationId: string | undefined;
+  conversationId: string;
   userId: Types.ObjectId;
 }
