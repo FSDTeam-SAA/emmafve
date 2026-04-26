@@ -20,7 +20,7 @@ const partnerAdSchema = new Schema<IPartnerAd>(
     },
     description: {
       type: String,
-      required: true,
+      required: false,
       trim: true,
     },
     address: {
