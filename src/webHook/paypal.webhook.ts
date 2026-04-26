@@ -54,6 +54,15 @@ const verifyPayPalWebhook = async (
   );
 
   const verifyData = await verifyRes.json();
+  console.log("PayPal Webhook Verification Response:", verifyData);
+  
+  if (verifyData.verification_status !== "SUCCESS") {
+    console.error("PayPal Webhook Signature Verification Failed!", {
+      status: verifyData.verification_status,
+      transmissionId: headers["paypal-transmission-id"]
+    });
+  }
+
   return verifyData.verification_status === "SUCCESS";
 };
 
@@ -129,9 +138,11 @@ export const paypalWebhookHandler = async (
           // ✅ donation update
           await donationModel.updateOne(
             { payment: payment._id },
-            { $set: { status: "completed" } },
+            { $set: { status: "completed" } }, // Lowercase matches schema enum
             { session },
           );
+
+          console.log(`Donation and Payment completed for: ${payment.payerEmail}`);
 
           // ✅ Stripe এর মতো socket emit
           const io = getIo();

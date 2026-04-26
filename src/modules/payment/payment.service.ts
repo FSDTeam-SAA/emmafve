@@ -131,6 +131,12 @@ const createPayPalOrder = async (
     },
     body: JSON.stringify({
       intent: "CAPTURE",
+      application_context: {
+        return_url: `${config.frontendUrl}/payment-success`,
+        cancel_url: `${config.frontendUrl}/payment-cancel`,
+        shipping_preference: "NO_SHIPPING",
+        user_action: "PAY_NOW",
+      },
       purchase_units: [
         {
           amount: {
