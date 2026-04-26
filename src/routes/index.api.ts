@@ -22,6 +22,7 @@ import { storyRoute } from "../modules/stories/stories.routes";
 import { donationProofRoute } from "../modules/donationProofs/donationProof.route";
 import { adminRoute } from "../modules/admin/admin.route";
 import { privateChatRoute } from "../modules/community/privatechat/privatechat.routes";
+import { chatReportRoute } from "../modules/community/chatreport/chatreport.routes";
 
 router.use("/user", userRoute);
 router.use("/auth", authRoute);
@@ -46,5 +47,6 @@ router.use("/community/stories", storyRoute);
 router.use("/donation-proofs", donationProofRoute);
 router.use("/admin", adminRoute);
 router.use("/community/private", privateChatRoute);
+router.use("/community/chat-reports", chatReportRoute);
 
 export default router;

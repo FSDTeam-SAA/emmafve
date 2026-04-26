@@ -17,12 +17,11 @@ import {
   CloudinaryResourceType,
 } from "../../../helpers/cloudinary";
 import { getIo } from "../../../socket/server";
-
+import { PrivateChatSocketEvents } from "../../../socket/socket.type";
 import { notificationService } from "../../notifications/notification.service";
 import { NotificationType } from "../../notifications/notification.interface";
-import { PrivateChatSocketEvents } from "../../../socket/socket.type";
 
-// ─── Media helpers (same pattern as chat.service) ────────────────────────────
+// ─── Media helpers ────────────────────────────────────────────────────────────
 
 const getMediaTypeFromMime = (mimetype: string): MediaType => {
   if (mimetype.startsWith("image/")) return MediaType.IMAGE;
@@ -65,9 +64,30 @@ const uploadPrivateMedia = async (
   }
 };
 
+// ─── Block check helper ───────────────────────────────────────────────────────
+
+const checkBlocked = async (
+  userAId: string,
+  userBId: string,
+): Promise<void> => {
+  const users = await userModel
+    .find({ _id: { $in: [userAId, userBId] } })
+    .select("blockedUsers")
+    .lean();
+
+  for (const user of users) {
+    const isBlocked = user.blockedUsers
+      ?.map((id: Types.ObjectId) => id.toString())
+      .includes(user._id.toString() === userAId ? userBId : userAId);
+
+    if (isBlocked) {
+      throw new CustomError(403, "You cannot message this user");
+    }
+  }
+};
+
 // ─── Conversation ─────────────────────────────────────────────────────────────
 
-// Start or return existing conversation between two users
 const startOrGetConversation = async (payload: StartConversationPayload) => {
   const { senderId, receiverId } = payload;
 
@@ -78,6 +98,9 @@ const startOrGetConversation = async (payload: StartConversationPayload) => {
   if (senderId.toString() === receiverId) {
     throw new CustomError(400, "You cannot start a conversation with yourself");
   }
+
+  // Block check before starting conversation
+  await checkBlocked(senderId.toString(), receiverId);
 
   const receiver = await userModel
     .findById(receiverId)
@@ -94,11 +117,8 @@ const startOrGetConversation = async (payload: StartConversationPayload) => {
 
   const receiverObjectId = new Types.ObjectId(receiverId);
 
-  // Check if conversation already exists
   const existing = await conversationModel
-    .findOne({
-      participants: { $all: [senderId, receiverObjectId] },
-    })
+    .findOne({ participants: { $all: [senderId, receiverObjectId] } })
     .populate("participants", "firstName lastName profileImage")
     .populate({
       path: "lastMessage",
@@ -108,7 +128,6 @@ const startOrGetConversation = async (payload: StartConversationPayload) => {
 
   if (existing) return existing;
 
-  // Create new conversation
   const conversation = await conversationModel.create({
     participants: [senderId, receiverObjectId],
     unreadCounts: {
@@ -123,7 +142,6 @@ const startOrGetConversation = async (payload: StartConversationPayload) => {
     .lean();
 };
 
-// Get all conversations for a user (inbox)
 const getConversations = async (userId: Types.ObjectId) => {
   const conversations = await conversationModel
     .find({ participants: userId })
@@ -135,12 +153,9 @@ const getConversations = async (userId: Types.ObjectId) => {
     .sort({ lastMessageAt: -1 })
     .lean();
 
-  // Attach unread count for the requesting user
   return conversations.map((conv) => ({
     ...conv,
-    myUnreadCount: conv.unreadCounts?.get
-      ? (conv.unreadCounts.get(userId.toString()) ?? 0)
-      : ((conv.unreadCounts as any)?.[userId.toString()] ?? 0),
+    myUnreadCount: (conv.unreadCounts as any)?.[userId.toString()] ?? 0,
   }));
 };
 
@@ -150,19 +165,17 @@ const sendMessage = async (
   payload: SendPrivateMessagePayload,
   files?: Express.Multer.File[],
 ) => {
-  const { conversationId, sender, content } = payload;
+  const { conversationId, sender, content, replyTo } = payload;
 
   if (!Types.ObjectId.isValid(conversationId)) {
     throw new CustomError(400, "Invalid conversation ID");
   }
 
   const conversation = await conversationModel.findById(conversationId);
-
   if (!conversation) {
     throw new CustomError(404, "Conversation not found");
   }
 
-  // Make sure sender is a participant
   const isParticipant = conversation.participants
     .map((p) => p.toString())
     .includes(sender.toString());
@@ -171,9 +184,48 @@ const sendMessage = async (
     throw new CustomError(403, "You are not part of this conversation");
   }
 
-  // Must have content or media
+  // Find receiver
+  const receiverId = conversation.participants
+    .find((p) => p.toString() !== sender.toString())
+    ?.toString();
+
+  if (!receiverId) {
+    throw new CustomError(400, "Conversation participants are invalid");
+  }
+
+  // Block check before sending
+  await checkBlocked(sender.toString(), receiverId);
+
   if (!content?.trim() && (!files || files.length === 0)) {
     throw new CustomError(400, "Message must have content or media");
+  }
+
+  // ─── Validate replyTo ────────────────────────────────────────────
+  let replyToId: Types.ObjectId | undefined;
+
+  if (replyTo) {
+    if (!Types.ObjectId.isValid(replyTo)) {
+      throw new CustomError(400, "Invalid replyTo message ID");
+    }
+
+    const originalMessage = await privateMessageModel
+      .findById(replyTo)
+      .select("conversation")
+      .lean();
+
+    if (!originalMessage) {
+      throw new CustomError(404, "Original message not found");
+    }
+
+    // Make sure the reply is within the same conversation
+    if (originalMessage.conversation.toString() !== conversationId) {
+      throw new CustomError(
+        400,
+        "Cannot reply to a message from another conversation",
+      );
+    }
+
+    replyToId = new Types.ObjectId(replyTo);
   }
 
   let media: IChatMedia[] = [];
@@ -187,14 +239,10 @@ const sendMessage = async (
     content: content?.trim() ?? "",
     media,
     status: PrivateMessageStatus.SENT,
+    ...(replyToId && { replyTo: replyToId }),
   });
 
-  // Find receiver (the other participant)
-  const receiverId = conversation.participants
-    .find((p) => p.toString() !== sender.toString())
-    ?.toString();
-
-  // Update conversation: lastMessage + lastMessageAt + increment receiver's unread count
+  // Update conversation
   const unreadKey = `unreadCounts.${receiverId}`;
   await conversationModel.findByIdAndUpdate(conversationId, {
     lastMessage: message._id,
@@ -205,44 +253,48 @@ const sendMessage = async (
   const populatedMessage = await privateMessageModel
     .findById(message._id)
     .populate("sender", "firstName lastName profileImage")
+    .populate({
+      path: "replyTo",
+      select: "content sender media",
+      populate: {
+        path: "sender",
+        select: "firstName lastName profileImage",
+      },
+    })
     .lean();
 
-  // ─── Real-time: emit to receiver's personal room ─────────────────
+  // ─── Socket emit to receiver ─────────────────────────────────────
   try {
     const io = getIo();
-    if (receiverId) {
-      io.to(receiverId).emit(PrivateChatSocketEvents.PRIVATE_NEW_MESSAGE, {
-        conversationId,
-        message: populatedMessage,
-      });
-    }
+    io.to(receiverId).emit(PrivateChatSocketEvents.PRIVATE_NEW_MESSAGE, {
+      conversationId,
+      message: populatedMessage,
+    });
   } catch (_) {
-    // silent fail — message is already saved
+    // silent fail
   }
 
-  // ─── Notification to receiver ────────────────────────────────────
-  if (receiverId) {
-    const senderUser = await userModel
-      .findById(sender)
-      .select("firstName lastName")
-      .lean();
+  // ─── Notification ────────────────────────────────────────────────
+  const senderUser = await userModel
+    .findById(sender)
+    .select("firstName lastName")
+    .lean();
 
-    const senderName = senderUser
-      ? `${senderUser.firstName} ${senderUser.lastName}`
-      : "Someone";
+  const senderName = senderUser
+    ? `${senderUser.firstName} ${senderUser.lastName}`
+    : "Someone";
 
-    const preview =
-      content?.length > 60
-        ? `${content.slice(0, 60)}...`
-        : content || "Sent an attachment";
+  const preview =
+    content?.length > 60
+      ? `${content.slice(0, 60)}...`
+      : content || "Sent an attachment";
 
-    await notificationService.notifySingleUser(
-      receiverId,
-      `New message from ${senderName}`,
-      preview,
-      NotificationType.SYSTEM, // no specific type for private message yet — can add later
-    );
-  }
+  await notificationService.notifySingleUser(
+    receiverId,
+    `New message from ${senderName}`,
+    preview,
+    NotificationType.SYSTEM,
+  );
 
   return populatedMessage;
 };
@@ -250,7 +302,7 @@ const sendMessage = async (
 const getMessages = async (query: GetMessagesQuery) => {
   const { conversationId, page, limit } = query;
 
-  if (!Types.ObjectId.isValid(conversationId as string)) {
+  if (!Types.ObjectId.isValid(conversationId)) {
     throw new CustomError(400, "Invalid conversation ID");
   }
 
@@ -258,15 +310,21 @@ const getMessages = async (query: GetMessagesQuery) => {
 
   const [messages, total] = await Promise.all([
     privateMessageModel
-      .find({ conversation: conversationId as string })
+      .find({ conversation: conversationId })
       .populate("sender", "firstName lastName profileImage")
+      .populate({
+        path: "replyTo",
+        select: "content sender media",
+        populate: {
+          path: "sender",
+          select: "firstName lastName profileImage",
+        },
+      })
       .sort({ createdAt: -1 })
       .skip(pagination.skip)
       .limit(pagination.limit)
       .lean(),
-    privateMessageModel.countDocuments({
-      conversation: conversationId as string,
-    }),
+    privateMessageModel.countDocuments({ conversation: conversationId }),
   ]);
 
   return {
@@ -280,20 +338,18 @@ const getMessages = async (query: GetMessagesQuery) => {
   };
 };
 
-// Mark all unread messages in a conversation as read
 const markAsRead = async (payload: MarkAsReadPayload) => {
   const { conversationId, userId } = payload;
 
-  if (!Types.ObjectId.isValid(conversationId as string)) {
+  if (!Types.ObjectId.isValid(conversationId)) {
     throw new CustomError(400, "Invalid conversation ID");
   }
 
   const now = new Date();
 
-  // Update all unread messages not sent by this user
   await privateMessageModel.updateMany(
     {
-      conversation: conversationId as string,
+      conversation: conversationId,
       sender: { $ne: userId },
       status: { $ne: PrivateMessageStatus.READ },
     },
@@ -303,13 +359,11 @@ const markAsRead = async (payload: MarkAsReadPayload) => {
     },
   );
 
-  // Reset this user's unread count in conversation
   const unreadKey = `unreadCounts.${userId.toString()}`;
   await conversationModel.findByIdAndUpdate(conversationId, {
     [unreadKey]: 0,
   });
 
-  // Notify the sender via socket that messages were read
   const conversation = await conversationModel.findById(conversationId).lean();
   if (conversation) {
     const senderId = conversation.participants
