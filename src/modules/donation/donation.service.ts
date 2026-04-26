@@ -100,59 +100,69 @@ const initiateStripeDonation = async (
   return result;
 };
 // PayPal donation শুরু করা
+// ✅ PENDING donation এখনই create
 const initiatePayPalDonation = async (
   payload: CreateDonationPayload,
 ): Promise<{ orderId: string }> => {
-  const { amount, donorEmail, donorName } = payload;
-
-  const result = await paymentService.createPayPalOrder({
-    amount,
-    currency: PaymentCurrency.EUR,
-    payerEmail: donorEmail,
-    payerName: donorName,
-  });
-
-  return result;
-};
-
-// PayPal capture — এখানেই donation record তৈরি হবে
-const capturePayPalDonation = async (
-  payload: CreateDonationPayload & { orderId: string },
-): Promise<IDonation> => {
   const {
-    orderId,
+    amount,
     donorEmail,
     donorName,
     type,
     isCompanyDonation,
     companyInfo,
+    userId,
   } = payload;
 
-  const payment = await paymentService.capturePayPalOrder({
-    orderId,
-    payerEmail: donorEmail,
-    payerName: donorName,
+  // 1️⃣ PayPal order create + PENDING payment create
+  const result = await paymentService.createPayPalOrder({
+    amount: amount as number,
+    currency: PaymentCurrency.USD as PaymentCurrency,
+    payerEmail: donorEmail as string,
+    payerName: donorName as string,
+    userId: userId as string,
   });
 
+  // 2️⃣ payment record fetch (orderId দিয়ে)
+  const payment = await paymentModel.findOne({
+    providerTransactionId: result.orderId,
+  });
+
+  if (!payment) {
+    throw new CustomError(404, "Payment record not found after PayPal order");
+  }
+
+  // 3️⃣ PENDING donation create
   const donationData: any = {
     payment: payment._id,
-    amount: payment.amount,
+    amount,
     method: "paypal",
-    status: payment.status === "completed" ? "completed" : "pending",
+    status: "pending",
     type: type ?? DonationType.ONE_TIME,
     donorEmail,
     donorName,
     isCompanyDonation: isCompanyDonation ?? false,
+    receiptId: generateReceiptId(),
   };
 
   if (companyInfo) {
     donationData.companyInfo = companyInfo;
   }
 
-  donationData.receiptId = generateReceiptId();
-  const donation = await donationModel.create(donationData);
+  await donationModel.create(donationData);
 
-  return donation;
+  return result;
+};
+
+// ✅ শুধু PayPal capture call — DB একদম touch করবে না
+const capturePayPalDonation = async (payload: {
+  orderId: string;
+}): Promise<{ captureId: string; orderId: string }> => {
+  return await paymentService.capturePayPalOrder({
+    orderId: payload.orderId,
+    payerEmail: "",
+    payerName: "",
+  });
 };
 
 const syncPhysicalDonation = async (payload: {
@@ -221,7 +231,6 @@ const getAllDonations = async (req: any) => {
     }
   }
 
-
   // get payment populate pipeline
   const pipeline: any[] = [
     {
@@ -244,14 +253,14 @@ const getAllDonations = async (req: any) => {
                 $and: [
                   { $ne: ["$$refId", null] },
                   { $ne: ["$$refId", ""] },
-                  { $eq: ["$_id", { $toObjectId: "$$refId" }] }
-                ]
-              }
-            }
-          }
+                  { $eq: ["$_id", { $toObjectId: "$$refId" }] },
+                ],
+              },
+            },
+          },
         ],
-        as: "proof"
-      }
+        as: "proof",
+      },
     },
     { $unwind: { path: "$proof", preserveNullAndEmptyArrays: true } },
     {
@@ -259,17 +268,23 @@ const getAllDonations = async (req: any) => {
         from: "partnerads",
         localField: "proof.collectionPoint",
         foreignField: "_id",
-        as: "collectionPoint"
-      }
+        as: "collectionPoint",
+      },
     },
     { $unwind: { path: "$collectionPoint", preserveNullAndEmptyArrays: true } },
     {
       $addFields: {
         method: { $ifNull: ["$method", "$payment.provider"] },
-        status: { $cond: { if: { $and: ["$payment", { $ne: ["$payment", null] }] }, then: "$payment.status", else: "$status" } },
-        association: { $ifNull: ["$collectionPoint.title", "HESTEKA"] }
-      }
-    }
+        status: {
+          $cond: {
+            if: { $and: ["$payment", { $ne: ["$payment", null] }] },
+            then: "$payment.status",
+            else: "$status",
+          },
+        },
+        association: { $ifNull: ["$collectionPoint.title", "HESTEKA"] },
+      },
+    },
   ];
 
   if (status) {
@@ -356,14 +371,20 @@ export const donationService = {
           from: "payments",
           localField: "payment",
           foreignField: "_id",
-          as: "paymentInfo"
-        }
+          as: "paymentInfo",
+        },
       },
       { $unwind: { path: "$paymentInfo", preserveNullAndEmptyArrays: true } },
       {
         $addFields: {
-          realStatus: { $cond: { if: "$paymentInfo", then: "$paymentInfo.status", else: "$status" } }
-        }
+          realStatus: {
+            $cond: {
+              if: "$paymentInfo",
+              then: "$paymentInfo.status",
+              else: "$status",
+            },
+          },
+        },
       },
       {
         $facet: {
@@ -403,7 +424,9 @@ export const donationService = {
       totalCollected: completed.totalCollected,
       returnedToAssos: completed.totalCollected * 0.9,
       pendingAmount: pending.totalPending,
-      averageBasket: completed.avgBasket ? Math.round(completed.avgBasket * 100) / 100 : 0,
+      averageBasket: completed.avgBasket
+        ? Math.round(completed.avgBasket * 100) / 100
+        : 0,
     };
   },
 
@@ -452,7 +475,12 @@ export const donationService = {
       doc.fontSize(20).text("HESTEKA", { align: "center" });
       doc.fontSize(10).text("ASSOCIATION", { align: "center" }).moveDown(2);
 
-      doc.fontSize(16).text(isFiscal ? "OFFICIAL FISCAL RECEIPT" : "DONATION RECEIPT", { align: "center" }).moveDown(1);
+      doc
+        .fontSize(16)
+        .text(isFiscal ? "OFFICIAL FISCAL RECEIPT" : "DONATION RECEIPT", {
+          align: "center",
+        })
+        .moveDown(1);
       doc.moveTo(50, doc.y).lineTo(550, doc.y).stroke("#e8ddd0").moveDown(2);
 
       const tableTop = doc.y;
@@ -498,12 +526,16 @@ export const donationService = {
         });
 
       doc.moveDown(6);
-      doc.fontSize(8).font("Helvetica-Oblique").fillColor("#9a8a7a").text(
-        isFiscal
-          ? "This fiscal receipt is issued in accordance with current tax laws. It entitles the donor to a tax deduction for their charitable contribution."
-          : "Thank you for your generous donation. Your support helps us continue our mission to help animals in need.",
-        { align: "center" }
-      );
+      doc
+        .fontSize(8)
+        .font("Helvetica-Oblique")
+        .fillColor("#9a8a7a")
+        .text(
+          isFiscal
+            ? "This fiscal receipt is issued in accordance with current tax laws. It entitles the donor to a tax deduction for their charitable contribution."
+            : "Thank you for your generous donation. Your support helps us continue our mission to help animals in need.",
+          { align: "center" },
+        );
 
       doc.end();
     });

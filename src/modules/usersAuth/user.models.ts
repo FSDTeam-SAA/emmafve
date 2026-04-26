@@ -5,7 +5,6 @@ import CustomError from "../../helpers/CustomError";
 import config from "../../config";
 import { IUser, role, status, authProvider } from "./user.interface";
 
-
 const userSchema = new Schema<IUser>(
   {
     firstName: {
@@ -48,7 +47,6 @@ const userSchema = new Schema<IUser>(
       type: String,
       trim: true,
     },
-
     password: {
       type: String,
       required: false,
@@ -90,18 +88,10 @@ const userSchema = new Schema<IUser>(
       type: String,
     },
     resetPassword: {
-      otp: {
-        type: String,
-      },
-      otpExpire: {
-        type: Date,
-      },
-      token: {
-        type: String,
-      },
-      tokenExpire: {
-        type: Date,
-      },
+      otp: { type: String },
+      otpExpire: { type: Date },
+      token: { type: String },
+      tokenExpire: { type: Date },
     },
     rememberMe: {
       type: Boolean,
@@ -121,25 +111,26 @@ const userSchema = new Schema<IUser>(
       },
       address: String,
     },
+    // ─── Block System ────────────────────────────────────────────────
+    blockedUsers: {
+      type: [{ type: Schema.Types.ObjectId, ref: "User" }],
+      default: [],
+    },
   },
   {
     timestamps: true,
   },
 );
 
-//
 userSchema.pre<IUser>("save", async function () {
   const userModel = this.constructor as Model<IUser>;
-  const existingUser = await userModel.findOne({
-    email: this.email,
-  });
+  const existingUser = await userModel.findOne({ email: this.email });
 
   if (existingUser && existingUser._id.toString() !== this._id.toString()) {
     throw new CustomError(409, "Email already exists");
   }
 });
 
-// encrypt password in pre middleware
 userSchema.pre<IUser & Document>("save", async function () {
   if (!this.isModified("password") || !this.password) return;
 
@@ -158,7 +149,6 @@ userSchema.index(
 
 userSchema.index({ location: "2dsphere" }, { sparse: true });
 
-// compare password
 userSchema.methods.comparePassword = async function (
   password: string,
 ): Promise<boolean> {
@@ -166,18 +156,15 @@ userSchema.methods.comparePassword = async function (
   return await bcrypt.compare(password, this.password);
 };
 
-// update password method
 userSchema.methods.updatePassword = async function (
   currentPassword: string,
   newPassword: string,
 ): Promise<boolean> {
-  //check current password is valid
   const isValid = await this.comparePassword(currentPassword);
   if (!isValid) {
     throw new CustomError(401, "Current password is incorrect");
   }
 
-  //is match new password to current
   const isMatch = await this.comparePassword(newPassword);
   if (isMatch) {
     throw new CustomError(
@@ -187,16 +174,14 @@ userSchema.methods.updatePassword = async function (
   }
 
   this.password = newPassword;
-
   return true;
 };
-//create access token
+
 userSchema.methods.createAccessToken = function () {
   return jwt.sign(
     { userId: this._id, email: this.email },
     config.jwt.accessTokenSecret as string,
     {
-
       expiresIn:
         config.env === "development"
           ? "1d"
@@ -207,7 +192,6 @@ userSchema.methods.createAccessToken = function () {
   );
 };
 
-//create refresh token
 userSchema.methods.createRefreshToken = function () {
   return jwt.sign(
     { userId: this._id },
@@ -218,7 +202,6 @@ userSchema.methods.createRefreshToken = function () {
   );
 };
 
-//create reset password token
 userSchema.methods.generateResetPasswordToken = function () {
   return jwt.sign(
     { userId: this._id, email: this.email },
@@ -229,12 +212,10 @@ userSchema.methods.generateResetPasswordToken = function () {
   );
 };
 
-//verify access token
 userSchema.methods.verifyAccessToken = function (token: string) {
   return jwt.verify(token, config.jwt.accessTokenSecret as string);
 };
 
-//verify refresh token
 userSchema.methods.verifyRefreshToken = function (token: string) {
   return jwt.verify(token, config.jwt.refreshTokenSecret as string);
 };

@@ -1,25 +1,25 @@
 import { Request, Response } from "express";
 import config from "../config";
-import { paymentService } from "../modules/payment/payment.service";
-import { donationService } from "../modules/donation/donation.service";
+import { paymentModel } from "../modules/payment/payment.models";
+import { donationModel } from "../modules/donation/donation.models";
 import {
-  PaymentCurrency,
   PaymentProvider,
   PaymentStatus,
+  PaymentCurrency,
 } from "../modules/payment/payment.interface";
+import { getIo } from "../socket/server";
+import mongoose from "mongoose";
 
 const verifyPayPalWebhook = async (
   headers: Record<string, string>,
   rawBody: string,
 ): Promise<boolean> => {
   const { clientId, clientSecret, mode, webhookId } = config.paypal;
-
   const baseUrl =
     mode === "sandbox"
       ? "https://api-m.sandbox.paypal.com"
       : "https://api-m.paypal.com";
 
-  // Access token নাও
   const tokenRes = await fetch(`${baseUrl}/v1/oauth2/token`, {
     method: "POST",
     headers: {
@@ -32,7 +32,21 @@ const verifyPayPalWebhook = async (
   const tokenData = await tokenRes.json();
   if (!tokenRes.ok) return false;
 
-  // Signature verify করো
+  const verifyPayload = {
+    auth_algo: headers["paypal-auth-algo"],
+    cert_url: headers["paypal-cert-url"],
+    transmission_id: headers["paypal-transmission-id"],
+    transmission_sig: headers["paypal-transmission-sig"],
+    transmission_time: headers["paypal-transmission-time"],
+    webhook_id: String(webhookId || ""),
+    webhook_event: JSON.parse(rawBody),
+  };
+
+  console.log("Sending Verification Payload to PayPal:", {
+    ...verifyPayload,
+    webhook_event: "OMITTED_FOR_LOGS", // event ডাটা লগে বড় দেখাবে তাই হাইড করলাম
+  });
+
   const verifyRes = await fetch(
     `${baseUrl}/v1/notifications/verify-webhook-signature`,
     {
@@ -41,20 +55,21 @@ const verifyPayPalWebhook = async (
         "Content-Type": "application/json",
         Authorization: `Bearer ${tokenData.access_token}`,
       },
-      body: JSON.stringify({
-        auth_algo: headers["paypal-auth-algo"],
-        cert_url: headers["paypal-cert-url"],
-        client_id: clientId,
-        transmission_id: headers["paypal-transmission-id"],
-        transmission_sig: headers["paypal-transmission-sig"],
-        transmission_time: headers["paypal-transmission-time"],
-        webhook_id: webhookId,
-        webhook_event: JSON.parse(rawBody),
-      }),
+      body: JSON.stringify(verifyPayload),
     },
   );
 
   const verifyData = await verifyRes.json();
+  console.log("PayPal Webhook Verification Response:", verifyData);
+
+  if (verifyData.verification_status !== "SUCCESS") {
+    console.error("PayPal Webhook Signature Verification Failed!", {
+      status: verifyData.verification_status,
+      transmissionId: headers["paypal-transmission-id"],
+      debug_id: verifyData.debug_id,
+    });
+  }
+
   return verifyData.verification_status === "SUCCESS";
 };
 
@@ -62,9 +77,11 @@ export const paypalWebhookHandler = async (
   req: Request,
   res: Response,
 ): Promise<void> => {
-  const rawBody = JSON.stringify(req.body);
+  const rawBody =
+    req.body instanceof Buffer
+      ? req.body.toString("utf8")
+      : JSON.stringify(req.body);
 
-  // Signature verify করো
   const isValid = await verifyPayPalWebhook(
     req.headers as Record<string, string>,
     rawBody,
@@ -75,60 +92,130 @@ export const paypalWebhookHandler = async (
     return;
   }
 
-  const event = req.body;
+  const event = req.body instanceof Buffer ? JSON.parse(rawBody) : req.body;
+
+  console.log(`PayPal Webhook Received: ${event.event_type}`);
 
   try {
     switch (event.event_type) {
       case "PAYMENT.CAPTURE.COMPLETED": {
-        const capture = event.resource;
-        const captureId = capture.id;
-        const amount = parseFloat(capture.amount.value);
-        const currency =
-          capture.amount.currency_code.toLowerCase() as PaymentCurrency;
-        const payerEmail = capture.payer?.email_address ?? "";
-        const payerName = capture.payer?.name
-          ? `${capture.payer.name.given_name} ${capture.payer.name.surname}`
-          : "";
+        const session = await mongoose.startSession();
+        session.startTransaction();
 
-        // Payment record তৈরি করো
-        const payment = await paymentService.handleWebhookPayment(
-          PaymentProvider.PAYPAL,
-          captureId,
-          PaymentStatus.COMPLETED,
-          { payerEmail, payerName },
-          amount,
-          currency,
-        );
+        try {
+          const capture = event.resource;
+          const captureId = capture.id;
 
-        // Donation record তৈরি করো
-        await donationService.createDonationFromPayment(payment);
+          // ✅ captureId দিয়ে payment খোঁজো
+          // PayPal আগে orderId দিয়ে payment বানিয়েছিলাম,
+          // capture এর পর captureId set করা হয়েছে
+          let payment = await paymentModel.findOneAndUpdate(
+            {
+              provider: PaymentProvider.PAYPAL,
+              captureId,
+            },
+            { $set: { status: PaymentStatus.COMPLETED } },
+            { new: true, session },
+          );
+
+          // fallback — যদি captureId দিয়ে না পাওয়া যায় (Race condition), তবে orderId দিয়ে খুঁজি
+          if (!payment) {
+            const orderId = capture.supplementary_data?.related_ids?.order_id;
+            console.log(`Payment not found by captureId ${captureId}, trying orderId: ${orderId}`);
+            
+            if (orderId) {
+              payment = await paymentModel.findOneAndUpdate(
+                {
+                  provider: PaymentProvider.PAYPAL,
+                  providerTransactionId: orderId,
+                },
+                { $set: { status: PaymentStatus.COMPLETED, captureId: captureId } },
+                { new: true, session },
+              );
+            }
+          }
+
+          if (!payment) {
+            console.error(`PayPal Payment not found for Capture: ${captureId}`);
+            await session.abortTransaction();
+            session.endSession();
+            break;
+          }
+
+          // ✅ donation update
+          await donationModel.updateOne(
+            { payment: payment._id },
+            { $set: { status: "completed" } }, // Lowercase matches schema enum
+            { session },
+          );
+
+          console.log(`Donation and Payment completed for: ${payment.payerEmail}`);
+
+          // ✅ Stripe এর মতো socket emit
+          const io = getIo();
+          io.to(payment.payerEmail).emit("payment:update", {
+            orderId: payment.providerTransactionId,
+            captureId,
+            status: "COMPLETED",
+          });
+
+          await session.commitTransaction();
+          session.endSession();
+        } catch (err) {
+          await session.abortTransaction();
+          session.endSession();
+          throw err;
+        }
 
         break;
       }
 
       case "PAYMENT.CAPTURE.DENIED": {
-        const capture = event.resource;
-        await paymentService.handleWebhookPayment(
-          PaymentProvider.PAYPAL,
-          capture.id,
-          PaymentStatus.FAILED,
-          {},
-          0,
-          "eur" as PaymentCurrency,
-        );
+        const session = await mongoose.startSession();
+        session.startTransaction();
+
+        try {
+          const capture = event.resource;
+
+          const payment = await paymentModel.findOneAndUpdate(
+            { provider: PaymentProvider.PAYPAL, captureId: capture.id },
+            { $set: { status: PaymentStatus.FAILED } },
+            { new: true, session },
+          );
+
+          if (payment) {
+            await donationModel.updateOne(
+              { payment: payment._id },
+              { $set: { status: "cancelled" } },
+              { session },
+            );
+
+            const io = getIo();
+            io.to(payment.payerEmail).emit("payment:update", {
+              captureId: capture.id,
+              status: "FAILED",
+            });
+          }
+
+          await session.commitTransaction();
+          session.endSession();
+        } catch (err) {
+          await session.abortTransaction();
+          session.endSession();
+          throw err;
+        }
+
         break;
       }
 
       case "PAYMENT.CAPTURE.REFUNDED": {
         const capture = event.resource;
-        await paymentService.handleWebhookPayment(
-          PaymentProvider.PAYPAL,
-          capture.id,
-          PaymentStatus.REFUNDED,
-          {},
-          0,
-          "eur" as PaymentCurrency,
+
+        await paymentModel.findOneAndUpdate(
+          { provider: PaymentProvider.PAYPAL, captureId: capture.id },
+          { $set: { status: PaymentStatus.REFUNDED } },
         );
+
         break;
       }
 

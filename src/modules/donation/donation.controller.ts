@@ -68,31 +68,15 @@ const initiatePayPalDonation = asyncHandler(
 
 const capturePayPalDonation = asyncHandler(
   async (req: Request, res: Response) => {
-    const {
-      orderId,
-      donorEmail,
-      donorName,
-      type,
-      isCompanyDonation,
-      companyInfo,
-    } = req.body;
+    const { orderId } = req.body;
 
-    const result = await donationService.capturePayPalDonation({
-      orderId,
-      amount: 0, // capture response থেকে আসবে
-      type,
-      donorEmail,
-      donorName,
-      isCompanyDonation,
-      companyInfo,
-      payerEmail: donorEmail,
-      payerName: donorName,
-    });
+    // শুধু orderId দরকার এখন
+    const result = await donationService.capturePayPalDonation({ orderId });
 
     return ApiResponse.sendSuccess(
       res,
       200,
-      "PayPal donation captured successfully",
+      "PayPal payment captured, waiting for webhook confirmation",
       result,
     );
   },
@@ -100,29 +84,60 @@ const capturePayPalDonation = asyncHandler(
 
 const getAllDonations = asyncHandler(async (req: Request, res: Response) => {
   const { donations, meta } = await donationService.getAllDonations(req);
-  return ApiResponse.sendSuccess(res, 200, "Donations fetched successfully", donations, meta);
+  return ApiResponse.sendSuccess(
+    res,
+    200,
+    "Donations fetched successfully",
+    donations,
+    meta,
+  );
 });
 
 const getSingleDonation = asyncHandler(async (req: Request, res: Response) => {
-  const result = await donationService.getSingleDonation(req.params.donationId as string);
-  return ApiResponse.sendSuccess(res, 200, "Donation fetched successfully", result);
+  const result = await donationService.getSingleDonation(
+    req.params.donationId as string,
+  );
+  return ApiResponse.sendSuccess(
+    res,
+    200,
+    "Donation fetched successfully",
+    result,
+  );
 });
 
 const getDonationStats = asyncHandler(async (req: Request, res: Response) => {
   const result = await donationService.getDonationStats();
-  return ApiResponse.sendSuccess(res, 200, "Donation stats fetched successfully", result);
+  return ApiResponse.sendSuccess(
+    res,
+    200,
+    "Donation stats fetched successfully",
+    result,
+  );
 });
 
-const getDonationByReceiptId = asyncHandler(async (req: Request, res: Response) => {
-  const result = await donationService.getDonationByReceiptId(req.params.receiptId as string);
-  return ApiResponse.sendSuccess(res, 200, "Donation fetched successfully", result);
-});
+const getDonationByReceiptId = asyncHandler(
+  async (req: Request, res: Response) => {
+    const result = await donationService.getDonationByReceiptId(
+      req.params.receiptId as string,
+    );
+    return ApiResponse.sendSuccess(
+      res,
+      200,
+      "Donation fetched successfully",
+      result,
+    );
+  },
+);
 
 const sendReceiptEmail = asyncHandler(async (req: Request, res: Response) => {
   const { donationId } = req.params;
   const { isFiscal } = req.body;
   await donationService.sendReceiptEmail(donationId as string, !!isFiscal);
-  return ApiResponse.sendSuccess(res, 200, "Receipt sent successfully to donor");
+  return ApiResponse.sendSuccess(
+    res,
+    200,
+    "Receipt sent successfully to donor",
+  );
 });
 
 export const donationController = {

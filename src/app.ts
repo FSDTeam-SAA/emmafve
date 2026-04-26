@@ -51,18 +51,21 @@ app.get("/api/v1/ping", (_req: Request, res: Response) => {
 
 app.use(cookieParser());
 
-// Stripe webhook — must come before any body parsers
 app.use("/api/v1/webhook/stripe", express.raw({ type: "application/json" }));
+app.use("/api/v1/webhook/paypal", express.raw({ type: "application/json" }));
 
-// JSON body parser with 10mb limit (skips stripe webhook route)
+// ✅ একটাই parser — দুটোই skip করে
 app.use((req: Request, res: Response, next: NextFunction) => {
-  if (req.originalUrl.includes("/webhook/stripe")) return next();
+  if (
+    req.originalUrl.includes("/webhook/stripe") ||
+    req.originalUrl.includes("/webhook/paypal")
+  ) {
+    return next();
+  }
   express.json({ limit: "30mb" })(req, res, next);
 });
 
-// URL-encoded body parser with 10mb limit
 app.use(express.urlencoded({ extended: true, limit: "10mb" }));
-
 app.use(
   "/stamps",
   express.static(path.join(process.cwd(), "public", "stamps")),

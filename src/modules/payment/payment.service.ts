@@ -111,9 +111,9 @@ const getPayPalAccessToken = async (): Promise<string> => {
 };
 
 const createPayPalOrder = async (
-  payload: CreatePayPalOrderPayload,
-): Promise<{ orderId: string }> => {
-  const { amount, currency, payerEmail, payerName } = payload;
+  payload: CreatePayPalOrderPayload & { userId?: string | null },
+): Promise<{ orderId: string; approvalUrl: string }> => {
+  const { amount, currency, payerEmail, payerName, userId } = payload;
   const { mode } = config.paypal;
 
   const baseUrl =
@@ -131,6 +131,12 @@ const createPayPalOrder = async (
     },
     body: JSON.stringify({
       intent: "CAPTURE",
+      application_context: {
+        return_url: `${config.frontendUrl}/payment-success`,
+        cancel_url: `${config.frontendUrl}/payment-cancel`,
+        shipping_preference: "NO_SHIPPING",
+        user_action: "PAY_NOW",
+      },
       purchase_units: [
         {
           amount: {
@@ -149,13 +155,36 @@ const createPayPalOrder = async (
     throw new CustomError(500, "Failed to create PayPal order");
   }
 
-  return { orderId: data.id };
+  // ✅ approval URL বের করো
+  const approvalUrl = data.links?.find(
+    (link: any) => link.rel === "approve",
+  )?.href;
+
+  if (!approvalUrl) {
+    throw new CustomError(500, "PayPal approval URL not found");
+  }
+
+  // PENDING payment create
+  await paymentModel.create({
+    provider: PaymentProvider.PAYPAL,
+    providerTransactionId: data.id,
+    amount,
+    currency,
+    status: PaymentStatus.PENDING,
+    payerEmail,
+    payerName,
+    user: userId || null,
+    metadata: { payerEmail, payerName },
+  });
+
+  return { orderId: data.id, approvalUrl }; // ✅ approvalUrl return
 };
 
+// ✅ শুধু PayPal side capture করবে — DB তে লিখবে না
 const capturePayPalOrder = async (
   payload: CapturePayPalOrderPayload,
-): Promise<IPayment> => {
-  const { orderId, payerEmail, payerName } = payload;
+): Promise<{ captureId: string; orderId: string }> => {
+  const { orderId } = payload;
   const { mode } = config.paypal;
 
   const baseUrl =
@@ -177,33 +206,33 @@ const capturePayPalOrder = async (
   );
 
   const data = await response.json();
+  console.log("PayPal capture response:", JSON.stringify(data, null, 2));
 
   if (!response.ok) {
     throw new CustomError(500, "Failed to capture PayPal order");
   }
 
   const captureId = data.purchase_units?.[0]?.payments?.captures?.[0]?.id;
-  const capturedAmount =
-    data.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.value;
-  const capturedCurrency =
-    data.purchase_units?.[0]?.payments?.captures?.[0]?.amount?.currency_code;
 
   if (!captureId) {
     throw new CustomError(500, "PayPal capture ID not found");
   }
 
-  const payment = await paymentModel.create({
-    provider: PaymentProvider.PAYPAL,
-    providerTransactionId: captureId,
-    amount: parseFloat(capturedAmount),
-    currency: capturedCurrency.toLowerCase() as PaymentCurrency,
-    status: PaymentStatus.COMPLETED,
-    payerEmail,
-    payerName,
-    metadata: data,
-  });
+  // ✅ captureId টা orderId এর সাথে link করতে payment record update
+  await paymentModel.findOneAndUpdate(
+    {
+      provider: PaymentProvider.PAYPAL,
+      providerTransactionId: orderId,
+    },
+    {
+      $set: {
+        captureId,
+        status: PaymentStatus.COMPLETED, // API capture সাকসেস হলে সাথে সাথেই স্ট্যাটাস আপডেট করে দিচ্ছি
+      },
+    },
+  );
 
-  return payment;
+  return { captureId, orderId };
 };
 
 const handleWebhookPayment = async (

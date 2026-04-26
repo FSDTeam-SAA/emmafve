@@ -9,6 +9,9 @@ import {
   updatePassword,
   updateUser,
   updateFcmToken,
+  blockUser,
+  unblockUser,
+  getBlockedUsers,
 } from "./user.controller";
 import { allowRole, authGuard } from "../../middleware/auth.middleware";
 import { upload } from "../../middleware/multer.midleware";
@@ -74,5 +77,12 @@ router.patch(
   updateFcmToken,
 );
 
-export const userRoute = router;
+// ─── Block System ─────────────────────────────────────────────────────────────
 
+router.post("/block/:userId", authGuard, blockUser);
+
+router.delete("/unblock/:userId", authGuard, unblockUser);
+
+router.get("/blocked-list", authGuard, getBlockedUsers);
+
+export const userRoute = router;

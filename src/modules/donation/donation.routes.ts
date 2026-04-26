@@ -20,13 +20,13 @@ donationRoute.post(
 // PayPal
 donationRoute.post(
   "/paypal/initiate",
-  validateRequest(createPayPalDonationSchema),
+  // validateRequest(createPayPalDonationSchema),
   donationController.initiatePayPalDonation,
 );
 
 donationRoute.post(
   "/paypal/capture",
-  validateRequest(capturePayPalDonationSchema),
+  // validateRequest(capturePayPalDonationSchema),
   donationController.capturePayPalDonation,
 );
 
