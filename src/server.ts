@@ -4,11 +4,13 @@ dotenv.config();
 import { connectDatabase } from "./database/db";
 import config from "./config/index";
 import { server } from "./app";
+import { initFirebase } from "./utils/firebase";
 
 const PORT = config.port ? Number(config.port) : 8000;
 
 connectDatabase()
   .then(() => {
+    initFirebase();
     server.listen(config.port, () => {
       console.log(chalk.green(`Server running at http://localhost:${PORT}`));
     });

@@ -79,6 +79,9 @@ export const notificationService = {
       if (lat !== undefined && lng !== undefined) {
         console.log(`[Notification Service] Filtering for active users within ${radiusKm}km of [${lat}, ${lng}], plus all users missing a location...`);
         filter.$or = [
+          // Always notify admins regardless of location
+          { role: "admin" },
+          // Notify nearby users
           {
             location: {
               $geoWithin: {
@@ -86,6 +89,7 @@ export const notificationService = {
               },
             },
           },
+          // Notify users with no location saved
           { "location.coordinates": { $exists: false } },
           { "location.coordinates": { $size: 0 } },
           { location: null },
@@ -123,22 +127,32 @@ export const notificationService = {
         // Socket may not be initialized or caught error
       }
 
-      usersNearby.forEach((user, idx) => {
-        // Collect tokens
-        if (user.fcmTokens && Array.isArray(user.fcmTokens)) {
+      for (let idx = 0; idx < usersNearby.length; idx++) {
+        const user = usersNearby[idx];
+        if (!user) continue;
+
+        const userIdStr = user._id.toString();
+        let isOnline = false;
+
+        if (io) {
+          // Check if user has active sockets
+          const sockets = await io.in(userIdStr).fetchSockets();
+          if (sockets.length > 0) {
+            isOnline = true;
+            io.to(userIdStr).emit("notification:new", savedNotifications[idx]);
+          }
+        }
+
+        // If user is offline, collect FCM tokens
+        if (!isOnline && user.fcmTokens && Array.isArray(user.fcmTokens)) {
           allTokens.push(...user.fcmTokens);
         }
+      }
 
-        // 2. Real-time emit
-        if (io) {
-          io.to(user._id.toString()).emit("notification:new", savedNotifications[idx]);
-        }
-      });
-
-      // 3. Send Push Notifications via FCM (Idled per user request)
-      // if (allTokens.length > 0) {
-      //   await sendPushNotification(allTokens, title, body, { type });
-      // }
+      // 3. Send Push Notifications via FCM
+      if (allTokens.length > 0) {
+        await sendPushNotification(allTokens, title, body, { type });
+      }
 
     } catch (error) {
       console.error(" Failed in notifyUsersNearby:", error);
@@ -160,19 +174,25 @@ export const notificationService = {
 
       const savedNotification = await notificationModel.create(notificationToSave);
 
+      let isOnline = false;
       let io: any;
       try {
         io = getIo();
       } catch (err) { }
 
       if (io) {
-        io.to(user._id.toString()).emit("notification:new", savedNotification);
+        const userIdStr = user._id.toString();
+        const sockets = await io.in(userIdStr).fetchSockets();
+        if (sockets.length > 0) {
+          isOnline = true;
+          io.to(userIdStr).emit("notification:new", savedNotification);
+        }
       }
 
-      // Send Push Notifications via FCM (Idled per user request)
-      // if (user.fcmTokens && Array.isArray(user.fcmTokens) && user.fcmTokens.length > 0) {
-      //   await sendPushNotification(user.fcmTokens, title, body, { type });
-      // }
+      // Send Push Notifications via FCM only if offline
+      if (!isOnline && user.fcmTokens && Array.isArray(user.fcmTokens) && user.fcmTokens.length > 0) {
+        await sendPushNotification(user.fcmTokens, title, body, { type });
+      }
 
     } catch (error) {
       console.error(" Failed in notifySingleUser:", error);
