@@ -11,8 +11,10 @@ const geoPointSchema = z.object({
 export const createCollectionPointSchema = z
   .object({
     title: z.string().min(1, "Collection point title is required"),
-    description: z.string().min(1, "Collection point description is required"),
+    description: z.string().optional(),
     address: z.string().min(1, "Collection point address is required"),
+    latitude: z.any().optional(),
+    longitude: z.any().optional(),
     location: z
       .preprocess((val) => {
         if (typeof val === "string") {
@@ -28,8 +30,10 @@ export const createCollectionPointSchema = z
 export const updatePartnerAdSchema = z
   .object({
     title: z.string().min(1, "Title cannot be empty").optional(),
-    description: z.string().min(1, "Description cannot be empty").optional(),
+    description: z.string().optional(),
     address: z.string().min(1, "Address cannot be empty").optional(),
+    latitude: z.any().optional(),
+    longitude: z.any().optional(),
     location: z
       .preprocess((val) => {
         if (typeof val === "string") {

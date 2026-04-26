@@ -13,13 +13,15 @@ import { UpdateAdminConfigPayload } from "./admin.interface";
 import CustomError from "../../helpers/CustomError";
 import { paymentModel } from "../payment/payment.models";
 import { localMissionModel } from "../localMissions/localMission.models";
+import { localMissionParticipationModel } from "../localMissions/localMissionParticipation.models";
+import { LocalMissionStatus, LocalMissionParticipationStatus } from "../localMissions/localMission.interface";
 import { partnerAdModel } from "../partnerAds/partnerAd.models";
 import { rewardItemModel, redemptionModel } from "../rewards/reward.models";
 
 export const adminService = {
   async getStats() {
     const now = new Date();
-    
+
     // Current Month
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
@@ -54,6 +56,8 @@ export const adminService = {
       recentReports,
       recentUsers,
       recentDonations,
+      inProgressMissions,
+      totalDonors,
       config,
     ] = await Promise.all([
       // Users
@@ -68,7 +72,7 @@ export const adminService = {
       reportModel.aggregate([
         { $group: { _id: "$status", count: { $sum: 1 } } }
       ]),
-      reportModel.find({ 
+      reportModel.find({
         status: { $in: [ReportStatus.LOST, ReportStatus.SIGHTED] },
         "location.coordinates": { $ne: [0, 0] }
       })
@@ -116,6 +120,10 @@ export const adminService = {
       reportModel.find().sort({ createdAt: -1 }).limit(3).populate("author", "firstName lastName"),
       userModel.find().sort({ createdAt: -1 }).limit(3),
       donationModel.find().sort({ createdAt: -1 }).limit(3),
+
+      // Missions detail stats for global
+      localMissionParticipationModel.countDocuments({ status: LocalMissionParticipationStatus.PENDING }),
+      donationModel.distinct("donorName").then(res => res.length),
 
       // Config
       this.getConfig(),
@@ -209,17 +217,17 @@ export const adminService = {
       missions: {
         total: totalMissions,
         active: activeMissions,
-        inProgress: 3, // Mocked for now
+        inProgress: inProgressMissions,
       },
       downloads: {
-        total: 2103, // Mocked value
-        growth: 55,
+        total: totalUsers * 3, // Mock logic based on users
+        growth: 12,
       },
       crowdfunding: {
         totalCollected: config.crowdfundingTotal,
         goalAmount: config.crowdfundingGoal,
-        donors: 142, // Mocked or check if donation count
-        percentage: config.crowdfundingGoal > 0 
+        donors: totalDonors || 0,
+        percentage: config.crowdfundingGoal > 0
           ? Math.min(100, (config.crowdfundingTotal / config.crowdfundingGoal) * 100)
           : 0,
         left: config.crowdfundingGoal - config.crowdfundingTotal
@@ -245,13 +253,13 @@ export const adminService = {
     }
     return config;
   },
-  
+
   async getCrowdfundingStats() {
     const config = await this.getConfig();
     return {
       totalCollected: config.crowdfundingTotal,
       goalAmount: config.crowdfundingGoal,
-      percentage: config.crowdfundingGoal > 0 
+      percentage: config.crowdfundingGoal > 0
         ? Math.min(100, (config.crowdfundingTotal / config.crowdfundingGoal) * 100)
         : 0
     };
@@ -353,9 +361,25 @@ export const adminService = {
   },
 
   async getMissionStats() {
-    const total = await localMissionModel.countDocuments();
-    const active = await localMissionModel.countDocuments({ status: "active" });
-    return { total, active };
+    const [all, active, inProgress, finished, points] = await Promise.all([
+      localMissionModel.countDocuments(),
+      localMissionModel.countDocuments({ status: LocalMissionStatus.ACTIVE }),
+      localMissionParticipationModel.countDocuments({ status: LocalMissionParticipationStatus.PENDING }),
+      localMissionParticipationModel.countDocuments({ status: LocalMissionParticipationStatus.COMPLETED }),
+      localMissionParticipationModel.aggregate([
+        { $match: { status: LocalMissionParticipationStatus.COMPLETED } },
+        { $group: { _id: null, total: { $sum: "$pointsAwarded" } } }
+      ])
+    ]);
+
+    return {
+      all,
+      active,
+      inProgress,
+      toCome: active, // Current logic: active missions are to come
+      finished,
+      pointsAttributed: points[0]?.total || 0
+    };
   },
 
   async getDonationStats() {

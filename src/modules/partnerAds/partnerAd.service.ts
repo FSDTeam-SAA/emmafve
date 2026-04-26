@@ -49,12 +49,21 @@ const buildPayload = async (
     photo = await uploadCloudinary(image.path);
   }
 
-  return {
+  const payload: any = {
     ...data,
     partner: partner._id.toString(),
     type: PartnerAdType.COLLECTION_POINT,
     ...(photo ? { photo } : {}),
   };
+
+  if (data.latitude !== undefined && data.longitude !== undefined) {
+    payload.location = {
+      type: "Point",
+      coordinates: [Number(data.longitude), Number(data.latitude)],
+    };
+  }
+
+  return payload;
 };
 
 export const partnerAdService = {
@@ -241,6 +250,13 @@ export const partnerAdService = {
 
     const oldPublicIdToDelete = image ? ad.photo?.public_id : undefined;
     let newPublicIdToDeleteOnFailure: string | undefined;
+
+    if (data.latitude !== undefined && data.longitude !== undefined) {
+      data.location = {
+        type: "Point",
+        coordinates: [Number(data.longitude), Number(data.latitude)],
+      };
+    }
 
     Object.assign(ad, data);
 
