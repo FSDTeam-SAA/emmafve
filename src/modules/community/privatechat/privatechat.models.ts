@@ -53,14 +53,18 @@ const privateMessageSchema = new Schema<IPrivateMessage>(
       type: Date,
       default: null,
     },
+    replyTo: {
+      type: Schema.Types.ObjectId,
+      ref: "PrivateMessage",
+      default: null,
+    },
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true },
 );
 
 privateMessageSchema.index({ conversation: 1, createdAt: -1 });
 privateMessageSchema.index({ conversation: 1, sender: 1, status: 1 });
+privateMessageSchema.index({ replyTo: 1 });
 
 // ─── Conversation ─────────────────────────────────────────────────────────────
 
@@ -89,9 +93,7 @@ const conversationSchema = new Schema<IConversation>(
       default: {},
     },
   },
-  {
-    timestamps: true,
-  },
+  { timestamps: true },
 );
 
 conversationSchema.index({ participants: 1 });

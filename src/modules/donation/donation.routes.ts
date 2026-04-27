@@ -42,6 +42,12 @@ donationRoute.get(
   allowRole("admin"),
   donationController.getDonationStats,
 );
+
+donationRoute.get(
+  "/my-donations",
+  authGuard,
+  donationController.getMyDonations,
+);
 donationRoute.get(
   "/:donationId",
   authGuard,
