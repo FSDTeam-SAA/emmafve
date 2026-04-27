@@ -20,7 +20,22 @@ const getOrCreateStripeCustomer = async (userId: string): Promise<string> => {
   if (!user) throw new CustomError(404, "User not found");
 
   if (user.stripeCustomerId) {
-    return user.stripeCustomerId;
+    try {
+      // Verify the customer exists in the current Stripe account
+      await stripe.customers.retrieve(user.stripeCustomerId);
+      return user.stripeCustomerId;
+    } catch (error: any) {
+      // If customer is not found, we'll clear it and create a new one
+      if (
+        error.code === "resource_missing" ||
+        error.message.includes("No such customer")
+      ) {
+        (user as any).stripeCustomerId = undefined;
+        // Continue to creation logic below
+      } else {
+        throw error;
+      }
+    }
   }
 
   const customer = await stripe.customers.create({
@@ -38,7 +53,7 @@ const getOrCreateStripeCustomer = async (userId: string): Promise<string> => {
 
 const createStripeSetupIntent = async (
   userId: string,
-): Promise<{ clientSecret: string }> => {
+): Promise<{ clientSecret: string; customerId: string }> => {
   const customerId = await getOrCreateStripeCustomer(userId);
 
   const setupIntent = await stripe.setupIntents.create({
@@ -50,7 +65,7 @@ const createStripeSetupIntent = async (
     throw new CustomError(500, "Failed to create setup intent");
   }
 
-  return { clientSecret: setupIntent.client_secret };
+  return { clientSecret: setupIntent.client_secret, customerId };
 };
 
 const getPaymentMethods = async (userId: string) => {
