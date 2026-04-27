@@ -156,6 +156,20 @@ export const contactService = {
           $geoWithin: { $centerSphere: [[Number(longitude), Number(latitude)], rad / 6371] },
         };
       }
+      
+      // Apply city and country filters to the address field for partners
+      if (city || country) {
+        const andConditions: any[] = [];
+        if (city) andConditions.push({ address: { $regex: city as string, $options: "i" } });
+        if (country) andConditions.push({ address: { $regex: country as string, $options: "i" } });
+        
+        if (userFilter.$and) {
+          userFilter.$and.push(...andConditions);
+        } else {
+          userFilter.$and = andConditions;
+        }
+      }
+
       if (search) {
         const searchRegex = new RegExp(search as string, "i");
         userFilter.$or = [
@@ -202,6 +216,20 @@ export const contactService = {
       
       const userFilter: any = { role: role.PARTNERS };
       if (status && status !== "all") userFilter.status = status;
+      
+      // Apply city and country filters to the address field for partners
+      if (city || country) {
+        const andConditions: any[] = [];
+        if (city) andConditions.push({ address: { $regex: city as string, $options: "i" } });
+        if (country) andConditions.push({ address: { $regex: country as string, $options: "i" } });
+        
+        if (userFilter.$and) {
+          userFilter.$and.push(...andConditions);
+        } else {
+          userFilter.$and = andConditions;
+        }
+      }
+
       if (search) {
         const searchRegex = new RegExp(search as string, "i");
         userFilter.$or = [
@@ -212,7 +240,6 @@ export const contactService = {
           { company: searchRegex },
         ];
       }
-      // Note: city/country filters are skipped for partners as they don't have separate fields for them in this schema
 
       const [contacts, users] = await Promise.all([
         contactModel.find(filter).lean(),

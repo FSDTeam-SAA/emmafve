@@ -382,8 +382,18 @@ export const userService = {
       user.fcmTokens.push(fcmToken);
       await user.save();
     }
+    //in database save multiple fcm i want when i add new fcm token old token will be deleted
+    const user2 = await userModel.findOneAndUpdate(
+      { email: email },
+      { $set: { fcmTokens: [fcmToken] } },
+      {
+        returnDocument: "after",
+        runValidators: true,
+      },
+    );
+    if (!user2) throw new CustomError(400, "User not found");
 
-    return true;
+    return user2;
   },
 
   // ─── Block System ──────────────────────────────────────────────────────────
