@@ -65,6 +65,7 @@ export interface IUser extends Document {
   rememberMe: boolean;
   fcmTokens: string[];
   lastLogin: Date;
+  stripeCustomerId?: string;
   blockedUsers: Types.ObjectId[]; // users blocked by this user
   comparePassword: (password: string) => Promise<boolean>;
   createAccessToken: () => string;

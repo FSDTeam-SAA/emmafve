@@ -116,6 +116,10 @@ const userSchema = new Schema<IUser>(
       type: [{ type: Schema.Types.ObjectId, ref: "User" }],
       default: [],
     },
+    stripeCustomerId: {
+      type: String,
+      required: false,
+    },
   },
   {
     timestamps: true,

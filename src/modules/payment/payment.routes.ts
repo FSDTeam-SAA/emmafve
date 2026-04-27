@@ -1,6 +1,7 @@
 import express from "express";
 import { paymentController } from "./payment.controller";
 import { validateRequest } from "../../middleware/validateRequest.middleware";
+import { authGuard } from "../../middleware/auth.middleware";
 import {
   createStripePaymentIntentSchema,
   createPayPalOrderSchema,
@@ -16,6 +17,12 @@ paymentRoute.post(
   paymentController.createStripePaymentIntent,
 );
 
+paymentRoute.post(
+  "/stripe/create-setup-intent",
+  authGuard,
+  paymentController.createStripeSetupIntent,
+);
+
 // PayPal
 paymentRoute.post(
   "/paypal/create-order",
@@ -27,4 +34,13 @@ paymentRoute.post(
   "/paypal/capture-order",
   validateRequest(capturePayPalOrderSchema),
   paymentController.capturePayPalOrder,
+);
+
+// Payment Methods
+paymentRoute.get("/", authGuard, paymentController.getPaymentMethods);
+paymentRoute.delete("/:id", authGuard, paymentController.deletePaymentMethod);
+paymentRoute.post(
+  "/:id/default",
+  authGuard,
+  paymentController.setDefaultPaymentMethod,
 );

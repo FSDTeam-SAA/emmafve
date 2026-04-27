@@ -52,8 +52,61 @@ const capturePayPalOrder = asyncHandler(async (req: Request, res: Response) => {
   );
 });
 
+const createStripeSetupIntent = asyncHandler(
+  async (req: Request, res: Response) => {
+    const result = await paymentService.createStripeSetupIntent(
+      req.user?._id as string,
+    );
+    return ApiResponse.sendSuccess(
+      res,
+      200,
+      "Setup intent created successfully",
+      result,
+    );
+  },
+);
+
+const getPaymentMethods = asyncHandler(async (req: Request, res: Response) => {
+  const result = await paymentService.getPaymentMethods(
+    req.user?._id as string,
+  );
+  return ApiResponse.sendSuccess(
+    res,
+    200,
+    "Payment methods fetched successfully",
+    result,
+  );
+});
+
+const deletePaymentMethod = asyncHandler(async (req: Request, res: Response) => {
+  await paymentService.deletePaymentMethod(req.params.id as string);
+  return ApiResponse.sendSuccess(
+    res,
+    200,
+    "Payment method deleted successfully",
+  );
+});
+
+const setDefaultPaymentMethod = asyncHandler(
+  async (req: Request, res: Response) => {
+    await paymentService.setDefaultPaymentMethod(
+      req.user?._id as string,
+      req.params.id as string,
+    );
+    return ApiResponse.sendSuccess(
+      res,
+      200,
+      "Default payment method updated successfully",
+    );
+  },
+);
+
 export const paymentController = {
   createStripePaymentIntent,
   createPayPalOrder,
   capturePayPalOrder,
+  createStripeSetupIntent,
+  getPaymentMethods,
+  deletePaymentMethod,
+  setDefaultPaymentMethod,
 };

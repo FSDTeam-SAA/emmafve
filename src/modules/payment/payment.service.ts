@@ -1,5 +1,6 @@
 import { stripe } from "../../lib/stripe";
 import { paymentModel } from "./payment.models";
+import { userModel } from "../usersAuth/user.models";
 import {
   CapturePayPalOrderPayload,
   CreatePayPalOrderPayload,
@@ -13,6 +14,83 @@ import CustomError from "../../helpers/CustomError";
 import config from "../../config";
 
 /* ================= Stripe ================= */
+
+const getOrCreateStripeCustomer = async (userId: string): Promise<string> => {
+  const user = await userModel.findById(userId);
+  if (!user) throw new CustomError(404, "User not found");
+
+  if (user.stripeCustomerId) {
+    return user.stripeCustomerId;
+  }
+
+  const customer = await stripe.customers.create({
+    email: user.email,
+    metadata: {
+      userId: user._id.toString(),
+    },
+  });
+
+  user.stripeCustomerId = customer.id;
+  await user.save();
+
+  return customer.id;
+};
+
+const createStripeSetupIntent = async (
+  userId: string,
+): Promise<{ clientSecret: string }> => {
+  const customerId = await getOrCreateStripeCustomer(userId);
+
+  const setupIntent = await stripe.setupIntents.create({
+    customer: customerId,
+    usage: "off_session",
+  });
+
+  if (!setupIntent.client_secret) {
+    throw new CustomError(500, "Failed to create setup intent");
+  }
+
+  return { clientSecret: setupIntent.client_secret };
+};
+
+const getPaymentMethods = async (userId: string) => {
+  const customerId = await getOrCreateStripeCustomer(userId);
+
+  const paymentMethods = await stripe.paymentMethods.list({
+    customer: customerId,
+    type: "card",
+  });
+
+  const customer = await stripe.customers.retrieve(customerId);
+  const defaultMethod = (customer as any).invoice_settings
+    ?.default_payment_method;
+
+  return paymentMethods.data.map((pm) => ({
+    id: pm.id,
+    type: pm.card?.brand === "visa" ? "visa" : "mastercard",
+    lastFour: pm.card?.last4,
+    cardholderName: pm.billing_details.name || "Card Holder",
+    expiryDate: `${pm.card?.exp_month}/${pm.card?.exp_year}`,
+    isDefault: pm.id === defaultMethod,
+  }));
+};
+
+const deletePaymentMethod = async (paymentMethodId: string) => {
+  await stripe.paymentMethods.detach(paymentMethodId);
+};
+
+const setDefaultPaymentMethod = async (
+  userId: string,
+  paymentMethodId: string,
+) => {
+  const customerId = await getOrCreateStripeCustomer(userId);
+
+  await stripe.customers.update(customerId, {
+    invoice_settings: {
+      default_payment_method: paymentMethodId,
+    },
+  });
+};
 
 const createStripePaymentIntent = async (
   payload: CreateStripePaymentIntentPayload & { userId?: string },
@@ -269,6 +347,10 @@ const handleWebhookPayment = async (
 
 export const paymentService = {
   createStripePaymentIntent,
+  createStripeSetupIntent,
+  getPaymentMethods,
+  deletePaymentMethod,
+  setDefaultPaymentMethod,
   handleStripeWebhook,
   createPayPalOrder,
   capturePayPalOrder,
