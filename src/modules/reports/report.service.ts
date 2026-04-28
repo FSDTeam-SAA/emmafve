@@ -7,6 +7,7 @@ import { CreateReportPayload, UpdateReportPayload } from "./report.interface";
 import { commentService } from "../comments/comment.service";
 import { notificationService } from "../notifications/notification.service";
 import { NotificationType } from "../notifications/notification.interface";
+import { getIo } from "../../socket/server";
 
 const deleteCloudinaryQuietly = async (publicId?: string): Promise<void> => {
   if (!publicId) return;
@@ -92,6 +93,11 @@ export const reportService = {
       `A new report "${newReport.title}" needs attention.`,
       NotificationType.NEW_REPORT
     ).catch((err) => console.error("Admin Notification Error:", err));
+
+    try {
+      const io = getIo();
+      io.emit("report_new", newReport);
+    } catch (err) {}
 
     return newReport;
   },

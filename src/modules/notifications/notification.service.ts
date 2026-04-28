@@ -66,6 +66,13 @@ export const notificationService = {
       { new: true }
     );
   },
+  
+  async markAllAsRead(userId: string) {
+    return notificationModel.updateMany(
+      { user: userId, isRead: false },
+      { isRead: true }
+    );
+  },
 
   async deleteNotification(userId: string, notificationId: string) {
     const result = await notificationModel.deleteOne({ _id: notificationId, user: userId });

@@ -34,6 +34,12 @@ export const markNotificationAsRead = asyncHandler(async (req: Request, res: Res
   ApiResponse.sendSuccess(res, 200, "Notification marked as read successfully", updated);
 });
 
+export const markAllAsRead = asyncHandler(async (req: Request, res: Response) => {
+  const userId = (req.user as any)._id;
+  await notificationService.markAllAsRead(userId);
+  ApiResponse.sendSuccess(res, 200, "All notifications marked as read successfully");
+});
+
 export const deleteNotification = asyncHandler(async (req: Request, res: Response) => {
   const userId = (req.user as any)._id;
   const { notificationId } = req.params as { notificationId: string };
