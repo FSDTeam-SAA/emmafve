@@ -62,7 +62,7 @@ const createStripeSetupIntent = async (
 
   const ephemeralKey = await stripe.ephemeralKeys.create(
     { customer: customerId },
-    { apiVersion: "2026-02-25.clover" },
+    { apiVersion: "2026-11-17.clover" },
   );
 
   const setupIntent = await stripe.setupIntents.create({
