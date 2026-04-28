@@ -4,6 +4,7 @@ import {
   getmyprofile,
   getSingleUser,
   updateStatus,
+  updateUserByAdmin,
   approvePartner,
   rejectPartner,
   updatePassword,
@@ -46,6 +47,13 @@ router.patch(
   allowRole("admin"),
   validateRequest(updateStatusSchema),
   updateStatus,
+);
+
+router.patch(
+  "/update-user-admin/:userId",
+  authGuard,
+  allowRole("admin"),
+  updateUserByAdmin,
 );
 
 router.patch(

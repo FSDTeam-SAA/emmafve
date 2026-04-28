@@ -33,6 +33,10 @@ const userSchema = new Schema<IUser>(
       type: String,
       required: false,
     },
+    website: {
+      type: String,
+      required: false,
+    },
     pointsBalance: {
       type: Number,
       default: 0,

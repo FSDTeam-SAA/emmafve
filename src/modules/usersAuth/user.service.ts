@@ -256,6 +256,35 @@ export const userService = {
     return user;
   },
 
+  // update user by admin
+  async updateUserByAdmin(req: any) {
+    const { userId } = req.params;
+    const { latitude, longitude, locationAddress, ...data } = req.body;
+
+    const updateData: Record<string, unknown> = { ...data };
+    if (latitude !== undefined && longitude !== undefined) {
+      updateData.location = {
+        type: "Point",
+        coordinates: [longitude, latitude],
+        ...(locationAddress !== undefined ? { address: locationAddress } : {}),
+      };
+    } else if (locationAddress !== undefined) {
+      updateData["location.address"] = locationAddress;
+    }
+
+    const user = await userModel.findOneAndUpdate(
+      { _id: userId },
+      { $set: updateData },
+      {
+        returnDocument: "after",
+        runValidators: true,
+      },
+    );
+
+    if (!user) throw new CustomError(400, "User not found");
+    return user;
+  },
+
   // approve partner
   async approvePartner(partnerId: string) {
     const partner = await userModel.findOne({

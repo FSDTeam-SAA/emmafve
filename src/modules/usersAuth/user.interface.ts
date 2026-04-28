@@ -51,6 +51,7 @@ export interface IUser extends Document {
     address?: string;
   };
   company?: string;
+  website?: string;
   pointsBalance: number;
   isVerified: boolean;
   verificationOtp: string | null;
@@ -84,6 +85,7 @@ export interface UpdateUserPayload {
   phone?: string;
   address?: string;
   company?: string;
+  website?: string;
   profession?: string;
   selfIntroduction?: string;
   status?: status;
