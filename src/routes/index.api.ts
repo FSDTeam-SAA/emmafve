@@ -24,6 +24,8 @@ import { adminRoute } from "../modules/admin/admin.route";
 import { privateChatRoute } from "../modules/community/privatechat/privatechat.routes";
 import { myanimalRoute } from "../modules/myanimal/myanimal.routes";
 import { chatReportRoute } from "../modules/community/chatreport/chatreport.routes";
+import { faqRoute } from "../modules/faq/faq.route";
+import { settingsRoute } from "../modules/settings/settings.route";
 
 router.use("/user", userRoute);
 router.use("/auth", authRoute);
@@ -50,5 +52,7 @@ router.use("/admin", adminRoute);
 router.use("/community/private", privateChatRoute);
 router.use("/myanimal", myanimalRoute);
 router.use("/community/chat-reports", chatReportRoute);
+router.use("/faq", faqRoute);
+router.use("/settings", settingsRoute);
 
 export default router;
