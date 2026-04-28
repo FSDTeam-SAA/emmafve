@@ -151,7 +151,7 @@ export const paypalWebhookHandler = async (
 
           notificationService.notifyAdmins(
             "Payment Received",
-            `A new payment was received from ${payment.payerEmail} via PayPal.`,
+            `A new payment of ${payment.amount} ${payment.currency.toUpperCase()} was received from ${payment.payerEmail} via PayPal.`,
             NotificationType.NEW_PAYMENT
           ).catch((err) => console.error("Admin Notification Error:", err));
 
@@ -165,6 +165,13 @@ export const paypalWebhookHandler = async (
             orderId: payment.providerTransactionId,
             captureId,
             status: "COMPLETED",
+          });
+
+          // Notify admins to refresh their lists
+          io.emit("donation_new", { 
+            method: "paypal", 
+            amount: payment.amount, 
+            donor: payment.payerEmail 
           });
 
           await session.commitTransaction();

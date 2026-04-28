@@ -67,10 +67,16 @@ export const stripeWebhookHandler = async (
           ).catch((err) => console.error("Admin Notification Error:", err));
 
           const io = getIo();
-
           io.to(payment.payerEmail).emit("payment:update", {
             paymentIntentId: paymentIntent.id,
             status: "COMPLETED",
+          });
+
+          // Notify admins to refresh their lists
+          io.emit("donation_new", { 
+            method: "stripe", 
+            amount: paymentIntent.amount / 100, 
+            donor: payment.payerEmail 
           });
 
           await session.commitTransaction();
