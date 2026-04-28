@@ -14,7 +14,8 @@ import {
   getMissionStats,
   getDonationStats,
   getPhysicalItemStats,
-  getCollectionPointStats
+  getCollectionPointStats,
+  getAnalytics
 } from "./admin.controller";
 
 const router = Router();
@@ -24,6 +25,7 @@ router.get("/crowdfunding", getCrowdfundingStats);
 
 // Admin routes
 router.get("/stats", authGuard, allowRole("admin"), getStats);
+router.get("/analytics", authGuard, allowRole("admin"), getAnalytics);
 router.get("/config", authGuard, allowRole("admin"), getConfig);
 router.patch(
   "/config", 

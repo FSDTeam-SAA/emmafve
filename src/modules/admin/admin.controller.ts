@@ -75,3 +75,9 @@ export const getCollectionPointStats = asyncHandler(async (req: Request, res: Re
   const stats = await adminService.getCollectionPointStats();
   ApiResponse.sendSuccess(res, 200, "Collection point statistics fetched successfully", stats);
 });
+
+//: get analytics data (Admin)
+export const getAnalytics = asyncHandler(async (req: Request, res: Response) => {
+  const data = await adminService.getAnalytics();
+  ApiResponse.sendSuccess(res, 200, "Analytics data fetched successfully", data);
+});

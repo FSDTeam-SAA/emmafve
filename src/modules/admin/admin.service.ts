@@ -413,5 +413,63 @@ export const adminService = {
     const total = await partnerAdModel.countDocuments({ type: "collection_point" });
     return { total };
   },
+
+  async getAnalytics() {
+    const now = new Date();
+    const months = [];
+    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+    // Get last 6 months
+    for (let i = 5; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push({
+        month: monthNames[d.getMonth()],
+        date: d,
+        count: 0
+      });
+    }
+
+    const startOfPeriod = months[0].date;
+
+    const reportStats = await reportModel.aggregate([
+      {
+        $match: {
+          createdAt: { $gte: startOfPeriod }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            month: { $month: "$createdAt" },
+            year: { $year: "$createdAt" }
+          },
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    // Map stats to months array
+    months.forEach(m => {
+      const stat = reportStats.find(s => (s._id.month - 1) === monthNames.indexOf(m.month));
+      if (stat) m.count = stat.count;
+    });
+
+    // Mock data for other metrics as requested in screenshot
+    return {
+      overview: {
+        sessionsMonth: { value: 8420, trend: 10 },
+        retention: { value: 67, trend: -5 },
+        avgDuration: "4m32s",
+        conversion: 12
+      },
+      reportsPerMonth: months.map(m => ({ name: m.month, reports: m.count })),
+      activeZones: [
+        { name: "Provence-Alpes-Côte d'Azur", percentage: 38, color: "bg-orange-600" },
+        { name: "Île-de-France", percentage: 24, color: "bg-green-600" },
+        { name: "Occitanie", percentage: 18, color: "bg-blue-600" },
+        { name: "Auvergne-Rhône-Alpes", percentage: 12, color: "bg-purple-600" }
+      ]
+    };
+  }
 };
 

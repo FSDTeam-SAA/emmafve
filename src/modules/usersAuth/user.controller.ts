@@ -53,6 +53,19 @@ export const updateStatus = asyncHandler(
   },
 );
 
+//: update user by admin
+export const updateUserByAdmin = asyncHandler(
+  async (req: Request, res: Response) => {
+    const result = await userService.updateUserByAdmin(req);
+    ApiResponse.sendSuccess(
+      res,
+      200,
+      "User updated successfully by admin",
+      result,
+    );
+  },
+);
+
 //: approve partner
 export const approvePartner = asyncHandler(
   async (req: Request, res: Response) => {
