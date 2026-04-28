@@ -1,4 +1,6 @@
 import { userModel } from "./user.models";
+import { notificationService } from "../notifications/notification.service";
+import { NotificationType } from "../notifications/notification.interface";
 import jwt from "jsonwebtoken";
 import CustomError from "../../helpers/CustomError";
 import config from "../../config";
@@ -81,6 +83,13 @@ export const authService = {
       status: status.PENDING,
       provider: authProvider.LOCAL,
     });
+
+    notificationService.notifyAdmins(
+      "New Partner Registration",
+      `A new partner "${company}" has registered and requires approval.`,
+      NotificationType.NEW_PARTNER
+    ).catch(err => console.error("Admin Notification Error:", err));
+
     return user;
   },
 

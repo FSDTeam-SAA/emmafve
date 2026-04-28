@@ -9,6 +9,9 @@ export enum NotificationType {
   ACCOUNT_UPDATE = "account_update",
   CHAT_REPLY = "chat_reply",
   REWARD_UPDATE = "reward_update",
+  NEW_PAYMENT = "new_payment",
+  NEW_DONATION = "new_donation",
+  NEW_PARTNER = "new_partner",
 }
 
 export interface INotification extends Document {

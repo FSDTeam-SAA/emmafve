@@ -73,12 +73,18 @@ export const localMissionService = {
       if (mission.location && mission.location.coordinates && mission.location.coordinates.length >= 2) {
         const lng = mission.location.coordinates[0] as number;
         const lat = mission.location.coordinates[1] as number;
-        notificationService.notifyUsersNearby(baseTitle, baseDesc, NotificationType.NEW_MISSION, lat, lng, 10)
+        notificationService.notifyUsersNearby(baseTitle, baseDesc, NotificationType.NEW_MISSION, lat, lng, 15)
           .catch((err) => console.error("Notification Error:", err));
       } else {
         notificationService.notifyUsersNearby(baseTitle, baseDesc, NotificationType.NEW_MISSION)
           .catch((err) => console.error("Notification Error:", err));
       }
+
+      notificationService.notifyAdmins(
+        "New Local Mission",
+        `Partner "${partner.company}" created a new mission "${mission.title}".`,
+        NotificationType.NEW_MISSION
+      ).catch((err) => console.error("Admin Notification Error:", err));
 
       return await mission.populate("partner", partnerPopulate);
     } catch (error) {

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authGuard, allowRole } from "../../middleware/auth.middleware";
-import { getUserNotifications, getAdminNotifications, markNotificationAsRead, deleteNotification } from "./notification.controller";
+import { getUserNotifications, getAdminNotifications, markNotificationAsRead, deleteNotification, sendAdminAlert } from "./notification.controller";
 import { role } from "../usersAuth/user.interface";
 
 const router = Router();
@@ -14,6 +14,7 @@ router.delete("/delete-notification/:notificationId", deleteNotification);
 
 // Admin exclusive routes
 router.get("/get-all-admin-notifications", allowRole(role.ADMIN), getAdminNotifications);
+router.post("/send-admin-alert", allowRole(role.ADMIN), sendAdminAlert);
 
 
 export const notificationRoute = router;

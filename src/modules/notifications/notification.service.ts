@@ -72,30 +72,19 @@ export const notificationService = {
     return result.deletedCount > 0;
   },
 
-  async notifyUsersNearby(title: string, body: string, type: NotificationType, lat?: number, lng?: number, radiusKm: number = 10) {
+  async notifyUsersNearby(title: string, body: string, type: NotificationType, lat?: number, lng?: number, radiusKm: number = 15) {
     try {
-      let filter: any = { status: "active" };
+      let filter: any = { status: "active", role: { $ne: "admin" } };
 
       if (lat !== undefined && lng !== undefined) {
-        console.log(`[Notification Service] Filtering for active users within ${radiusKm}km of [${lat}, ${lng}], plus all users missing a location...`);
-        filter.$or = [
-          // Always notify admins regardless of location
-          { role: "admin" },
-          // Notify nearby users
-          {
-            location: {
-              $geoWithin: {
-                $centerSphere: [[lng, lat], radiusKm / 6378.1],
-              },
-            },
+        console.log(`[Notification Service] Filtering for active users/partners within ${radiusKm}km of [${lat}, ${lng}]...`);
+        filter.location = {
+          $geoWithin: {
+            $centerSphere: [[lng, lat], radiusKm / 6378.1],
           },
-          // Notify users with no location saved
-          { "location.coordinates": { $exists: false } },
-          { "location.coordinates": { $size: 0 } },
-          { location: null },
-        ];
+        };
       } else {
-        console.log(`[Notification Service] No event coordinates provided. Broadcasting to ALL active users.`);
+        console.log(`[Notification Service] No event coordinates provided. Broadcasting to ALL active users/partners.`);
       }
 
       const usersNearby = await userModel.find(filter).select("_id fcmTokens");
@@ -196,6 +185,120 @@ export const notificationService = {
 
     } catch (error) {
       console.error(" Failed in notifySingleUser:", error);
+    }
+  },
+
+  async notifyAdmins(title: string, body: string, type: NotificationType) {
+    try {
+      const admins = await userModel.find({ role: "admin", status: "active" }).select("_id fcmTokens");
+      if (!admins.length) return;
+
+      const notificationsToSave = admins.map(admin => ({
+        user: admin._id,
+        title,
+        description: body,
+        type,
+        isRead: false,
+      }));
+
+      const savedNotifications = await notificationModel.insertMany(notificationsToSave);
+
+      const allTokens: string[] = [];
+      let io: any;
+      try {
+        io = getIo();
+      } catch (err) { }
+
+      for (let idx = 0; idx < admins.length; idx++) {
+        const admin = admins[idx];
+        if (!admin) continue;
+        
+        const userIdStr = admin._id.toString();
+        let isOnline = false;
+
+        if (io) {
+          const sockets = await io.in(userIdStr).fetchSockets();
+          if (sockets.length > 0) {
+            isOnline = true;
+            io.to(userIdStr).emit("notification:new", savedNotifications[idx]);
+          }
+        }
+
+        if (!isOnline && admin.fcmTokens && Array.isArray(admin.fcmTokens)) {
+          allTokens.push(...admin.fcmTokens);
+        }
+      }
+
+      if (allTokens.length > 0) {
+        await sendPushNotification(allTokens, title, body, { type });
+      }
+
+    } catch (error) {
+      console.error(" Failed in notifyAdmins:", error);
+    }
+  },
+  async sendManualAdminAlert(geoTarget: string, userType: string, message: string) {
+    const query: any = {};
+    if (userType !== "all") {
+      query.role = userType;
+    } else {
+      query.role = { $in: ["user", "partner"] };
+    }
+
+    if (geoTarget === "paca") {
+      // PACA roughly around Marseille
+      query.location = {
+        $nearSphere: {
+          $geometry: { type: "Point", coordinates: [5.3698, 43.2965] }, // Lng, Lat
+          $maxDistance: 150000 // 150 km
+        }
+      };
+    }
+
+    const targetUsers = await userModel.find(query).select("_id fcmTokens");
+
+    if (!targetUsers || targetUsers.length === 0) return;
+
+    const type = NotificationType.SYSTEM;
+    const title = "Admin Alert";
+
+    const notificationsToSave = targetUsers.map(u => ({
+      user: u._id,
+      title,
+      description: message,
+      type,
+    }));
+
+    const savedNotifications = await notificationModel.insertMany(notificationsToSave);
+
+    const allTokens: string[] = [];
+    let io: any;
+    try {
+      io = getIo();
+    } catch (err) {}
+
+    for (let idx = 0; idx < targetUsers.length; idx++) {
+      const u = targetUsers[idx];
+      if (!u) continue;
+      
+      const userIdStr = u._id.toString();
+      let isOnline = false;
+
+      if (io) {
+        const sockets = await io.in(userIdStr).fetchSockets();
+        if (sockets.length > 0) {
+          isOnline = true;
+          io.to(userIdStr).emit("notification:new", savedNotifications[idx]);
+        }
+      }
+
+      if (!isOnline && u.fcmTokens && Array.isArray(u.fcmTokens)) {
+        allTokens.push(...u.fcmTokens);
+      }
+    }
+
+    if (allTokens.length > 0) {
+      await sendPushNotification(allTokens, title, message, { type });
     }
   }
 };

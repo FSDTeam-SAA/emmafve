@@ -69,6 +69,28 @@ export const donationProofService = {
       referenceId: donationProof._id.toString(),
     });
 
+    notificationService.notifyAdmins(
+      "New Donation Proof",
+      `A new donation proof of ${data.amount} units was submitted and requires approval.`,
+      NotificationType.NEW_DONATION
+    ).catch(err => console.error("Admin Notification Error:", err));
+
+    try {
+      const io = getIo();
+      io.emit("donation_proof_new", { 
+        proofId: donationProof._id, 
+        donorName: finalDonorName,
+        amount: data.amount 
+      });
+      io.emit("donation_new", {
+        method: "collection_point",
+        amount: data.amount,
+        donor: finalDonorEmail
+      });
+    } catch (error) {
+      console.error("Socket emit error:", error);
+    }
+
     return donationProof;
   },
 

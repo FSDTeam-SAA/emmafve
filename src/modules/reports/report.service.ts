@@ -80,12 +80,18 @@ export const reportService = {
     if (newReport.location && newReport.location.coordinates && newReport.location.coordinates.length >= 2) {
       const lng = newReport.location.coordinates[0] as number;
       const lat = newReport.location.coordinates[1] as number;
-      notificationService.notifyUsersNearby(baseTitle, baseDesc, NotificationType.NEW_REPORT, lat, lng, 10)
+      notificationService.notifyUsersNearby(baseTitle, baseDesc, NotificationType.NEW_REPORT, lat, lng, 15)
         .catch((err) => console.error("Notification Error:", err));
     } else {
       notificationService.notifyUsersNearby(baseTitle, baseDesc, NotificationType.NEW_REPORT)
         .catch((err) => console.error("Notification Error:", err));
     }
+
+    notificationService.notifyAdmins(
+      "New Report Created",
+      `A new report "${newReport.title}" needs attention.`,
+      NotificationType.NEW_REPORT
+    ).catch((err) => console.error("Admin Notification Error:", err));
 
     return newReport;
   },

@@ -1,4 +1,6 @@
 import { Request, Response } from "express";
+import { notificationService } from "../modules/notifications/notification.service";
+import { NotificationType } from "../modules/notifications/notification.interface";
 import Stripe from "stripe";
 import { paymentService } from "../modules/payment/payment.service";
 import { PaymentStatus } from "../modules/payment/payment.interface";
@@ -58,11 +60,23 @@ export const stripeWebhookHandler = async (
             { session },
           );
 
-          const io = getIo();
+          notificationService.notifyAdmins(
+            "Payment Received",
+            `A new payment of ${(paymentIntent.amount / 100).toFixed(2)} ${paymentIntent.currency.toUpperCase()} was received from ${payment.payerEmail}.`,
+            NotificationType.NEW_PAYMENT
+          ).catch((err) => console.error("Admin Notification Error:", err));
 
+          const io = getIo();
           io.to(payment.payerEmail).emit("payment:update", {
             paymentIntentId: paymentIntent.id,
             status: "COMPLETED",
+          });
+
+          // Notify admins to refresh their lists
+          io.emit("donation_new", { 
+            method: "stripe", 
+            amount: paymentIntent.amount / 100, 
+            donor: payment.payerEmail 
           });
 
           await session.commitTransaction();
