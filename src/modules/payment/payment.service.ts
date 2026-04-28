@@ -53,19 +53,32 @@ const getOrCreateStripeCustomer = async (userId: string): Promise<string> => {
 
 const createStripeSetupIntent = async (
   userId: string,
-): Promise<{ clientSecret: string; customerId: string }> => {
+): Promise<{
+  clientSecret: string;
+  customerId: string;
+  customerEphemeralKeySecret: string;
+}> => {
   const customerId = await getOrCreateStripeCustomer(userId);
+
+  const ephemeralKey = await stripe.ephemeralKeys.create(
+    { customer: customerId },
+    { apiVersion: "2026-02-25.clover" },
+  );
 
   const setupIntent = await stripe.setupIntents.create({
     customer: customerId,
     usage: "off_session",
   });
 
-  if (!setupIntent.client_secret) {
+  if (!setupIntent.client_secret || !ephemeralKey.secret) {
     throw new CustomError(500, "Failed to create setup intent");
   }
 
-  return { clientSecret: setupIntent.client_secret, customerId };
+  return {
+    clientSecret: setupIntent.client_secret,
+    customerId,
+    customerEphemeralKeySecret: ephemeralKey.secret,
+  };
 };
 
 const getPaymentMethods = async (userId: string) => {
