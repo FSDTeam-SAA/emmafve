@@ -47,3 +47,19 @@ export const deleteNotification = asyncHandler(async (req: Request, res: Respons
 
   ApiResponse.sendSuccess(res, 200, "Notification deleted successfully");
 });
+
+export const sendAdminAlert = asyncHandler(async (req: Request, res: Response) => {
+  const { geoTarget, userType, message } = req.body;
+
+  if (!message) {
+    ApiResponse.sendError(res, 400, "Message is required");
+    return;
+  }
+
+  // Determine if we need location-based filtering (PACA region approximation)
+  // Or just broadcast to everyone. For simplicity, we can pass geoTarget/userType to the service.
+  // We'll add this to the service.
+  await notificationService.sendManualAdminAlert(geoTarget, userType, message);
+
+  ApiResponse.sendSuccess(res, 200, "Alert sent successfully");
+});

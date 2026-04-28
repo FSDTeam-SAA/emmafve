@@ -1,4 +1,6 @@
 import { Request, Response } from "express";
+import { notificationService } from "../modules/notifications/notification.service";
+import { NotificationType } from "../modules/notifications/notification.interface";
 import config from "../config";
 import { paymentModel } from "../modules/payment/payment.models";
 import { donationModel } from "../modules/donation/donation.models";
@@ -146,6 +148,12 @@ export const paypalWebhookHandler = async (
             { $set: { status: "completed" } }, // Lowercase matches schema enum
             { session },
           );
+
+          notificationService.notifyAdmins(
+            "Payment Received",
+            `A new payment was received from ${payment.payerEmail} via PayPal.`,
+            NotificationType.NEW_PAYMENT
+          ).catch((err) => console.error("Admin Notification Error:", err));
 
           console.log(
             `Donation and Payment completed for: ${payment.payerEmail}`,

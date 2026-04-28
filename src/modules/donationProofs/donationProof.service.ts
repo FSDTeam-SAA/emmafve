@@ -69,6 +69,12 @@ export const donationProofService = {
       referenceId: donationProof._id.toString(),
     });
 
+    notificationService.notifyAdmins(
+      "New Donation Proof",
+      `A new donation proof was submitted and requires approval.`,
+      NotificationType.NEW_DONATION
+    ).catch(err => console.error("Admin Notification Error:", err));
+
     return donationProof;
   },
 
