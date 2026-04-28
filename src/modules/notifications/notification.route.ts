@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { authGuard, allowRole } from "../../middleware/auth.middleware";
-import { getUserNotifications, getAdminNotifications, markNotificationAsRead, deleteNotification, sendAdminAlert } from "./notification.controller";
+import { getUserNotifications, getAdminNotifications, markNotificationAsRead, deleteNotification, sendAdminAlert, markAllAsRead } from "./notification.controller";
 import { role } from "../usersAuth/user.interface";
 
 const router = Router();
@@ -9,6 +9,7 @@ const router = Router();
 router.use(authGuard);
 
 router.get("/get-my-notifications", getUserNotifications);
+router.patch("/mark-as-read/all", markAllAsRead);
 router.patch("/mark-as-read/:notificationId", markNotificationAsRead);
 router.delete("/delete-notification/:notificationId", deleteNotification);
 
