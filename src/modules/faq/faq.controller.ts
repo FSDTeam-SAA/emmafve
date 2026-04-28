@@ -14,17 +14,17 @@ export const getAllFaqs = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getFaqById = asyncHandler(async (req: Request, res: Response) => {
-  const result = await faqService.getFaqById(req.params.id);
+  const result = await faqService.getFaqById(req.params.id as string);
   ApiResponse.sendSuccess(res, 200, "FAQ fetched successfully", result);
 });
 
 export const updateFaq = asyncHandler(async (req: Request, res: Response) => {
-  const result = await faqService.updateFaq(req.params.id, req.body);
+  const result = await faqService.updateFaq(req.params.id as string, req.body);
   ApiResponse.sendSuccess(res, 200, "FAQ updated successfully", result);
 });
 
 export const deleteFaq = asyncHandler(async (req: Request, res: Response) => {
-  await faqService.deleteFaq(req.params.id);
+  await faqService.deleteFaq(req.params.id  as string);
   ApiResponse.sendSuccess(res, 200, "FAQ deleted successfully");
 });
 
