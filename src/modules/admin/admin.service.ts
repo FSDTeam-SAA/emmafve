@@ -416,20 +416,20 @@ export const adminService = {
 
   async getAnalytics() {
     const now = new Date();
-    const months = [];
+    const months: { month: string; date: Date; count: number }[] = [];
     const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
     // Get last 6 months
     for (let i = 5; i >= 0; i--) {
       const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
       months.push({
-        month: monthNames[d.getMonth()],
+        month: monthNames[d.getMonth()]!,
         date: d,
         count: 0
       });
     }
 
-    const startOfPeriod = months[0].date;
+    const startOfPeriod = months[0]?.date || now;
 
     const reportStats = await reportModel.aggregate([
       {
