@@ -8,6 +8,11 @@ import { commentService } from "../comments/comment.service";
 import { notificationService } from "../notifications/notification.service";
 import { NotificationType } from "../notifications/notification.interface";
 import { getIo } from "../../socket/server";
+import { userModel } from "../usersAuth/user.models";
+import { pointTransactionModel } from "../points/point.models";
+import { PointTransactionType, PointTransactionSource } from "../points/point.interface";
+import { pointConfigModel } from "../points/pointConfig.models";
+
 
 const deleteCloudinaryQuietly = async (publicId?: string): Promise<void> => {
   if (!publicId) return;
@@ -23,6 +28,7 @@ export const reportService = {
   // Create a new report
   async createReport(req: Request) {
     const authorId = req.user?._id;
+    if (!authorId) throw new CustomError(401, "Unauthorized");
     const body = req.body;
     let locationData = undefined;
 
@@ -73,6 +79,30 @@ export const reportService = {
     if (payload.isEmailVisible === 'false') payload.isEmailVisible = false;
 
     const newReport = await reportModel.create(payload);
+
+    // Award Points
+    try {
+      const config = await pointConfigModel.findOne();
+      const pointsToAward = config?.pointsPerReport || 10;
+
+      await userModel.findByIdAndUpdate(authorId, {
+        $inc: { pointsBalance: pointsToAward }
+      });
+
+      await pointTransactionModel.create({
+        user: authorId,
+        type: PointTransactionType.EARN,
+        source: PointTransactionSource.ANIMAL_REPORT,
+        points: pointsToAward,
+        note: `Reward for report: ${newReport.title || newReport.animalName}`,
+      });
+
+      // Mark report as point-awarded
+      newReport.isPointApproved = true;
+      await newReport.save();
+    } catch (pointError) {
+      console.error("Failed to award points for report:", pointError);
+    }
 
     // Fire & Forget Notification
     const baseTitle = "New Animal Report Nearby!";
