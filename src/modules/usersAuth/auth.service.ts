@@ -60,16 +60,36 @@ export const authService = {
     if (!payload.company) {
       throw new CustomError(400, "Company is required");
     }
-
-    if (payload.email) {
-      emailValidator(payload.email);
+    if (!payload.email) {
+      throw new CustomError(400, "Email is required");
+    }
+    if (!payload.phone) {
+      throw new CustomError(400, "Phone number is required");
     }
 
+    emailValidator(payload.email);
+
+    const email = payload.email.trim().toLowerCase();
+    const phone = payload.phone.trim();
     const company = payload.company.trim();
-    const existingPartner = await userModel.findOne({
-      role: role.PARTNERS,
-      company: { $regex: `^${company.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}$`, $options: "i" },
-    });
+
+    const escapedCompany = company.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const [existingEmail, existingPhone, existingPartner] = await Promise.all([
+      userModel.exists({ email }),
+      userModel.exists({ phone }),
+      userModel.exists({
+        role: role.PARTNERS,
+        company: { $regex: `^${escapedCompany}$`, $options: "i" },
+      }),
+    ]);
+
+    if (existingEmail) {
+      throw new CustomError(409, "Email already exists");
+    }
+
+    if (existingPhone) {
+      throw new CustomError(409, "Phone number already exists");
+    }
 
     if (existingPartner) {
       throw new CustomError(409, "A partner account already exists for this company");
@@ -78,6 +98,8 @@ export const authService = {
     const otp = generateOTP();
     const user = await userModel.create({
       ...payload,
+      email,
+      phone,
       company,
       role: role.PARTNERS,
       status: status.PENDING,

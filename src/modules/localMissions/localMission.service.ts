@@ -48,6 +48,25 @@ const getPartnerAccount = async (userId?: unknown) => {
   return partner;
 };
 
+const normalizeLocation = (location: unknown) => {
+  if (!location) return undefined;
+
+  const parsedLocation = typeof location === "string" ? JSON.parse(location) : location;
+  const coordinates = (parsedLocation as any)?.coordinates;
+
+  if (!Array.isArray(coordinates) || coordinates.length < 2) return undefined;
+
+  const lng = Number(coordinates[0]);
+  const lat = Number(coordinates[1]);
+
+  if (Number.isNaN(lat) || Number.isNaN(lng)) return undefined;
+
+  return {
+    type: "Point",
+    coordinates: [lng, lat] as [number, number],
+  };
+};
+
 export const localMissionService = {
   async createLocalMission(req: Request) {
     const partner = await getPartnerAccount(req.user?._id);
@@ -60,8 +79,10 @@ export const localMissionService = {
     }
 
     try {
+      const location = normalizeLocation(data.location);
       const mission = await localMissionModel.create({
         ...data,
+        ...(location ? { location } : {}),
         partner: partner._id.toString(),
         ...(photo ? { photo } : {}),
       });

@@ -26,7 +26,7 @@ export const validateRequest = (schema: ZodSchema): RequestHandler => {
         );
       }
 
-      await schema.parseAsync(req.body ?? {});
+      req.body = await schema.parseAsync(req.body ?? {});
 
       next();
     } catch (err: any) {
