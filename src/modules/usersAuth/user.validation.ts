@@ -32,6 +32,10 @@ export const updateUserSchema = z
       .optional(),
     profession: z.string().optional(),
     city: z.string().optional(),
+    postalCode: z
+      .string()
+      .regex(/^\d{5}$/, "Postal code must be a valid 5-digit French postal code")
+      .optional(),
     country: z.string().optional(),
     status: statusSchema.optional(),
     image: z.any().optional(),

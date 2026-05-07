@@ -34,12 +34,22 @@ export const registration = asyncHandler(async (req, res) => {
 
 //: Register partner
 export const partnerRegistration = asyncHandler(async (req, res) => {
-  const user = await authService.registerPartner(req.body);
+  const user = await authService.registerPartner(
+    req.body,
+    req.file as Express.Multer.File | undefined,
+  );
   ApiResponse.sendSuccess(res, 201, "Partner registered successfully", {
     email: user.email,
     firstName: user.firstName,
     lastName: user.lastName,
     company: user.company,
+    phone: user.phone,
+    address: user.address,
+    city: user.city,
+    postalCode: user.postalCode,
+    country: user.country,
+    location: user.location,
+    profileImage: user.profileImage,
     role: user.role,
   });
 });

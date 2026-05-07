@@ -14,6 +14,7 @@ import {
   resendVerificationOtp,
 } from "./auth.controller";
 import { authGuard } from "../../middleware/auth.middleware";
+import { upload } from "../../middleware/multer.midleware";
 import { validateRequest } from "../../middleware/validateRequest.middleware";
 import {
   forgetPasswordSchema,
@@ -37,6 +38,7 @@ router.post(
 
 router.post(
   "/register-partner",
+  upload.single("logo"),
   validateRequest(registerPartnerSchema),
   partnerRegistration,
 );

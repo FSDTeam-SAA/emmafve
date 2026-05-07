@@ -29,6 +29,21 @@ const userSchema = new Schema<IUser>(
       type: String,
       required: true,
     },
+    city: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+    postalCode: {
+      type: String,
+      required: false,
+      trim: true,
+    },
+    country: {
+      type: String,
+      required: false,
+      trim: true,
+    },
     company: {
       type: String,
       required: false,

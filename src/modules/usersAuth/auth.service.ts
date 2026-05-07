@@ -1,10 +1,12 @@
 import { userModel } from "./user.models";
 import { notificationService } from "../notifications/notification.service";
 import { NotificationType } from "../notifications/notification.interface";
+import fs from "fs";
 import jwt from "jsonwebtoken";
 import CustomError from "../../helpers/CustomError";
 import config from "../../config";
 import { IUser, role, status, authProvider } from "./user.interface";
+import { deleteCloudinary, uploadCloudinary } from "../../helpers/cloudinary";
 import { emailValidator } from "../../helpers/emailValidator";
 import { generateOTP } from "../../utils/otpGenerator";
 import { mailer } from "../../helpers/nodeMailer";
@@ -21,6 +23,12 @@ const googleClient = new OAuth2Client(
 // Note: For a true "callback" flow (redirect-based), you need a redirect URI and client secret.
 // I am implementing the idToken verification flow which is standard for modern apps,
 // but adding a placeholder for getting user info from a code if redirected.
+
+type RegisterPartnerPayload = Partial<IUser> & {
+  latitude?: number;
+  longitude?: number;
+  locationAddress?: string;
+};
 
 export const authService = {
   //register
@@ -56,15 +64,37 @@ export const authService = {
   },
 
   //register partner
-  async registerPartner(payload: Partial<IUser>) {
+  async registerPartner(
+    payload: RegisterPartnerPayload,
+    logo?: Express.Multer.File,
+  ): Promise<IUser> {
+    const cleanupLogoFile = () => {
+      if (logo?.path && fs.existsSync(logo.path)) {
+        fs.unlinkSync(logo.path);
+      }
+    };
+
     if (!payload.company) {
+      cleanupLogoFile();
       throw new CustomError(400, "Company is required");
     }
     if (!payload.email) {
+      cleanupLogoFile();
       throw new CustomError(400, "Email is required");
     }
     if (!payload.phone) {
+      cleanupLogoFile();
       throw new CustomError(400, "Phone number is required");
+    }
+    if (!logo) {
+      throw new CustomError(400, "Partner logo is required");
+    }
+    if (
+      typeof payload.latitude !== "number" ||
+      typeof payload.longitude !== "number"
+    ) {
+      cleanupLogoFile();
+      throw new CustomError(400, "Latitude and longitude are required");
     }
 
     emailValidator(payload.email);
@@ -84,35 +114,55 @@ export const authService = {
     ]);
 
     if (existingEmail) {
+      cleanupLogoFile();
       throw new CustomError(409, "Email already exists");
     }
 
     if (existingPhone) {
+      cleanupLogoFile();
       throw new CustomError(409, "Phone number already exists");
     }
 
     if (existingPartner) {
+      cleanupLogoFile();
       throw new CustomError(409, "A partner account already exists for this company");
     }
 
-    const otp = generateOTP();
-    const user = await userModel.create({
-      ...payload,
-      email,
-      phone,
-      company,
-      role: role.PARTNERS,
-      status: status.PENDING,
-      provider: authProvider.LOCAL,
-    });
+    const profileImage = await uploadCloudinary(logo.path);
 
-    notificationService.notifyAdmins(
-      "New Partner Registration",
-      `A new partner "${company}" has registered and requires approval.`,
-      NotificationType.NEW_PARTNER
-    ).catch(err => console.error("Admin Notification Error:", err));
+    try {
+      const { latitude, longitude, locationAddress, ...partnerData } = payload;
+      const user = (await userModel.create({
+        ...partnerData,
+        email,
+        phone,
+        company,
+        profileImage,
+        location: {
+          type: "Point",
+          coordinates: [longitude, latitude],
+          ...(locationAddress !== undefined ? { address: locationAddress } : {}),
+        },
+        role: role.PARTNERS,
+        status: status.PENDING,
+        provider: authProvider.LOCAL,
+      })) as IUser;
 
-    return user;
+      notificationService.notifyAdmins(
+        "New Partner Registration",
+        `A new partner "${company}" has registered and requires approval.`,
+        NotificationType.NEW_PARTNER
+      ).catch(err => console.error("Admin Notification Error:", err));
+
+      return user;
+    } catch (error) {
+      if (profileImage?.public_id) {
+        await deleteCloudinary(profileImage.public_id).catch((err) =>
+          console.error("Cloudinary cleanup error:", err),
+        );
+      }
+      throw error;
+    }
   },
 
   //verify account
